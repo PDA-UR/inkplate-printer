@@ -10,54 +10,78 @@
    28 July 2020 by e-radionica.com
 */
 
-
-// Next 3 lines are a precaution, you can ignore those, and the example would also work without them
-
-
 #include "config.h"
 
 Inkplate display(INKPLATE_3BIT);
+String last_hash;
+String mac_addr;
+
+void setup_wifi()
+{
+    // Connect to Wi-Fi network with SSID and password
+    WiFi.config(local_ip, gateway, subnet, dns1, dns2);
+
+    WiFi.begin(SSID, PASSWORD);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+}
+
+void enter_deep_sleep()
+{
+    Serial.println("Going to sleep");
+    delay(100);
+    esp_sleep_enable_timer_wakeup(15ll * 1000 * 1000);
+    esp_deep_sleep_start();
+}
+
+void update_image()
+{
+    HTTPClient http;
+    uint16_t port = 5000;
+    String server_addr = "";
+    server_addr.concat(HOST);
+    server_addr.concat("?client=");
+    server_addr.concat(mac_addr);
+    Serial.println(server_addr);
+    if(display.drawImage(server_addr, display.PNG, 0, 0))
+    {
+        display.display();
+    }
+    // http.begin(server_addr);
+    // int status_code = http.GET();
+    // if(status_code == 200)
+    // {
+    //     display.drawImage(server_addr, display.PNG, 0, 0);
+    //     display.display();
+    // }
+    // else if(status_code == 201)
+    // {
+    //     Serial.println("No new image available.");
+    //     return;
+    // }
+    // else
+    // {
+    //     Serial.println("HTTP Error");
+    //     return;
+    // }
+}
 
 void setup()
 {
     Serial.begin(115200);
     display.begin();
 
-    // Welcome screen
-    display.setCursor(100, 100);
-    display.setTextSize(5);
-    display.setTextColor(BLACK);
-    display.print("Booting...");
-    display.display();
+    setup_wifi();
+    mac_addr = WiFi.macAddress();
 
-    delay(2000);
+    update_image();
 
-    WiFi.config(local_ip, gateway, subnet, dns1, dns2);
-
-    // Connect to Wi-Fi network with SSID and password
-    WiFi.begin(SSID, PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    display.setCursor(100, 300);
-    display.print("Connected to: " + WiFi.SSID());
-    display.setCursor(100, 400);
-    display.print("Downloading image...");
-    display.display();
-
-    // Download and display image
-    Serial.println(display.drawImage(HOST, display.PNG, 0, 0));
-    display.display();
-
-    Serial.println("Going to sleep");
-    delay(100);
-    esp_sleep_enable_timer_wakeup(15ll * 60 * 1000 * 1000);
-    esp_deep_sleep_start();
+    enter_deep_sleep();
 }
 
 void loop()
 {
-    // Never here, as deepsleep restarts esp32
+    // not used, because of deep sleep
 }
