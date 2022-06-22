@@ -2,6 +2,7 @@ from flask import Flask, send_file, make_response, Response, request, after_this
 import os
 import io
 import string
+import sys
 
 app = Flask(__name__)
 
@@ -25,7 +26,7 @@ def img_route():
         with open(file_path, "rb") as f:
             file_data.write(f.read())
         file_data.seek(0)
-        os.remove(file_path)
+        # os.remove(file_path)
         return send_file(file_data, mimetype="image/png", download_name="unknown.png")
     else: 
         return Response("", status=201, mimetype='image/png')
