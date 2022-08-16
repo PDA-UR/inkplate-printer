@@ -36,7 +36,27 @@ void enter_deep_sleep()
     esp_deep_sleep_start();
 }
 
-void update_image()
+void save_img_buff_to_sd(uint8_t *buf, string filename)
+{
+    SdFile file;
+
+    //make sure file can be created, otherwise print error
+    if (!file.open(filename.c_str(), O_RDWR | O_CREAT | O_AT_END))
+    {
+        sd.errorHalt("opening file for write failed");
+    }
+
+    int file_size = READ32(buf + 2);
+
+    file.write(buf, file_size);
+
+    file.flush();
+    file.close();                                        // close file when done writing
+
+    Serial.println("file saved");
+}
+
+uint8_t* download_file()
 {
     HTTPClient http;
     uint16_t port = 5000;
@@ -45,27 +65,32 @@ void update_image()
     server_addr.concat("?client=");
     server_addr.concat(mac_addr);
     Serial.println(server_addr);
-    if(display.drawImage(server_addr, display.PNG, 0, 0))
+
+    // Initialize SdFat or print a detailed error message and halt
+    // Use half speed like the native library.
+    // change to SPI_FULL_SPEED for more performance.
+    // if (!sd.begin(chipSelect, SPI_HALF_SPEED)) sd.initErrorHalt();
+    if(!display.sdCardInit()) return nullptr;
+
+    http.begin("https://people.math.sc.edu/Burkardt/data/bmp/blackbuck.bmp");
+    int status_code = http.GET();
+    if(status_code == 200)
     {
-        display.display();
+        int len = 1200*825; // display resolution
+        uint8_t *img_buf = display.downloadFile("https://people.math.sc.edu/Burkardt/data/bmp/blackbuck.bmp", &len); 
+        Serial.println("image downloaded");
+        return img_buf;
     }
-    // http.begin(server_addr);
-    // int status_code = http.GET();
-    // if(status_code == 200)
-    // {
-    //     display.drawImage(server_addr, display.PNG, 0, 0);
-    //     display.display();
-    // }
-    // else if(status_code == 201)
-    // {
-    //     Serial.println("No new image available.");
-    //     return;
-    // }
-    // else
-    // {
-    //     Serial.println("HTTP Error");
-    //     return;
-    // }
+    else if(status_code == 201)
+    {
+        Serial.println("No new image available.");
+        return nullptr;
+    }
+    else
+    {
+        Serial.println("HTTP Error");
+        return nullptr;
+    }
 }
 
 void setup()
@@ -76,12 +101,20 @@ void setup()
     setup_wifi();
     mac_addr = WiFi.macAddress();
 
-    update_image();
+    uint8_t *buf = download_file();
+    if(buf == nullptr) return;
 
-    enter_deep_sleep();
+    save_img_buff_to_sd(buf);
+    free(buf);
+
+    //enter_deep_sleep();
 }
 
 void loop()
 {
+    // if (display.readTouchpad(PAD3))
+    // {
+        
+    // }
     // not used, because of deep sleep
 }
