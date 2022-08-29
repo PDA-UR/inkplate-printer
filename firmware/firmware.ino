@@ -1,15 +1,3 @@
-/*
-   Image frame example for e-radionica.com Inkplate 10
-   For this example you will need only USB cable and Inkplate 10.
-   Select "Inkplate 10(ESP32)" from Tools -> Board menu.
-   Don't have "Inkplate 10(ESP32)" option? Follow our tutorial and add it:
-   https://e-radionica.com/en/blog/add-inkplate-6-to-arduino-ide/
-
-   Want to learn more about Inkplate? Visit www.inkplate.io
-   Looking to get support? Write on our forums: http://forum.e-radionica.com/en/
-   28 July 2020 by e-radionica.com
-*/
-
 #include "config.h"
 
 Inkplate display(INKPLATE_3BIT);
