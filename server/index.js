@@ -8,17 +8,16 @@ var printer = new Printer({name: 'My Printer', port: 49050})
 printer.on('job', function (job)
 {
   console.log('[job %d] Printing document: %s', job.id, job.name)
- 
-  var filename = 'job-' + job.id + '.pn' // .ps = PostScript
+  var filename = 'job-' + job.id + '.ps' // .ps = PostScript
   var file = fs.createWriteStream(filename)
+  job.pipe(file)
  
   job.on('end', function ()
   {
     console.log('[job %d] Document saved as %s', job.id, filename)
-    convert(filename)
+    ps2bmp(filename)
   })
  
-  job.pipe(file)
 })
 
 function convert(filename)
@@ -44,11 +43,39 @@ function convert(filename)
       })
 }
 
+function ps2bmp(filename)
+{
+  file_wo_end = filename.slice(0, -3)
+  var spawn = require("child_process").spawn
+  var process = spawn("gs",
+    [
+      "-sDEVICE=bmpgray",
+      "-dNOPAUSE",
+      "-dBATCH",
+      "-dSAFER",
+      "-r145",
+      "-g825x1200",
+      "-sOutputFile=" + file_wo_end + "_%d.bmp",
+      filename,
+    ]
+  )
+
+  process.stdout.on('data', function (data)
+  {
+    console.log("gs: "+data);
+  });
+
+  process.on('exit', function() {
+    python_script(filename)
+  })
+}
+
+// execute the script which scans the directory, deletes ps files, moves bmp files
 function python_script(filename)
 {
-  console.log("foo "+ filename)
+  console.log("executing python script")
   var spawn = require("child_process").spawn;
-  var process = spawn('python',["./new_image.py","./"+filename]);
+  var process = spawn('python',["./new_image.py", "./" + filename]);
 
   process.stdout.on('data', function (data)
   {

@@ -10,26 +10,48 @@ clients = {}
 server_home_path = os.path.expanduser("~") + "/.inkplate-printer"
 img_queue_folder = server_home_path + "/" + "queue"
 
-@app.route("/")
+@app.route("/img")
 def img_route():
+    print(request)
     client_mac = request.args.get("client")
+    doc_name = request.args.get("doc_name")
+    page_num = request.args.get("page_num")
 
-    # check if there is an image for this specific device
-    file_path = client_has_new_img(client_mac)
-    # otherwise get an image from the queue
-    if not file_path:
-        file_path = get_img_from_queue()
-    
+    file_path = img_queue_folder + "/" + doc_name + "_" + str(page_num) + ".bmp"
+
     # return an image if we got one, otherwise return a different status code
     if file_path:
         file_data = io.BytesIO()
         with open(file_path, "rb") as f:
             file_data.write(f.read())
         file_data.seek(0)
-        os.remove(file_path)
-        return send_file(file_data, mimetype="image/png", download_name="unknown.png")
+        # os.remove(file_path)
+        print("sending file: " + file_path)
+        return send_file(file_data, mimetype="image/bmp", download_name="unknown.bmp")
     else: 
-        return Response("", status=201, mimetype='image/png')
+        return Response("", status=201, mimetype='image/bmp')
+    
+@app.route("/")
+def check_route():
+    client_mac = request.args.get("client")
+
+    # check if there is an image for this specific device
+    file_path = client_has_new_img(client_mac)
+
+    # otherwise get an image from the queue
+    if not file_path:
+        file_path = get_img_from_queue()
+    
+    # return the document name and number of pages if we got a doc to print
+    # otherwise return a different status code
+    if file_path:
+        doc_name = file_path.split("/")[-1].split("_")[0]
+        num_pages = get_doc_page_num(doc_name)
+        print("doc name: " + doc_name)
+        print("pages: " + str(num_pages))
+        return Response(doc_name + "_" + str(num_pages), status=200)
+    else: 
+        return Response("", status=201)
 
 def client_has_new_img(client_mac):
     if not client_mac in clients.keys():
@@ -43,10 +65,22 @@ def client_has_new_img(client_mac):
         else:
             return False
 
-def get_img_from_queue():
-    print(img_queue_folder)
+def get_doc_page_num(doc_name):
+    num_pages = 0
     for f in os.listdir(img_queue_folder):
-        if f.endswith(".png"):
+        if f.startswith(doc_name):
+            num_pages += 1
+    return num_pages
+
+def get_img_from_queue():
+    for f in os.listdir(img_queue_folder):
+        if f.endswith(".bmp"):
+            return img_queue_folder + "/" + f
+    return False
+
+def get_page_for_doc(doc_name, page_num):
+    for f in os.listdir(img_queue_folder):
+        if f.endswith(".bmp"):
             return img_queue_folder + "/" + f
     return False
 
