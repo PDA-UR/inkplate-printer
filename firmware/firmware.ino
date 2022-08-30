@@ -3,6 +3,25 @@
 Inkplate display(INKPLATE_3BIT);
 String mac_addr;
 
+enum {
+    none = 0,
+    left = 1,
+    middle = 2,
+    right = 3
+} touchpad_pressed;
+
+enum {
+    page_view,
+    doc_view
+} view_mode;
+
+bool check_new_doc_while_idle = true;
+long prev_millis = 0;
+int check_docs_interval_ms = 30 * 1000;
+bool touchpad_released = true;
+int touchpad_cooldown_ms = 1000;
+long touchpad_released_time = 0;
+
 void setup_wifi()
 {
     // Connect to Wi-Fi network with SSID and password
@@ -26,24 +45,17 @@ void enter_deep_sleep()
 void save_img_buff_to_sd(uint8_t *buf, String &filename)
 {
     SdFile file;
-    Serial.println(1);
     String bmp_filename = filename + ".bmp";
-    Serial.println(bmp_filename.c_str());
 
     //make sure file can be created, otherwise print error
     if (!file.open(bmp_filename.c_str(), O_RDWR | O_CREAT | O_AT_END))
     {
-        Serial.println("fuck");
+        Serial.println("Error creating file!");
     }
-    Serial.println(2);
+    
     int file_size = READ32(buf + 2);
-    Serial.println(3);
-
     file.write(buf, file_size);
-    Serial.println(4);
-
     file.flush();
-    Serial.println(5);
     file.close();                                        // close file when done writing
 
     Serial.println("file saved");
@@ -86,6 +98,7 @@ bool server_has_new_file(String &doc_name,int &num_pages)
         int index = payload.indexOf("_");
         doc_name = payload.substring(0, index);
         num_pages = payload.substring(index + 1).toInt();
+
         Serial.print("server has new file with name: ");
         Serial.print(doc_name);
         Serial.print("\tpages:");
@@ -121,7 +134,7 @@ void request_doc_routine()
             return;
         }
 
-        if(cur_page==1)    // immediately display the first page
+        if(cur_page == 1)    // immediately display the first page
         {
             if(display.drawBitmapFromBuffer(img_buf, 0, 0, 0, 0))
             {
@@ -135,6 +148,14 @@ void request_doc_routine()
     }
 }
 
+int read_touchpads()
+{
+    if(display.readTouchpad(PAD1)) return 1;
+    if(display.readTouchpad(PAD2)) return 2;
+    if(display.readTouchpad(PAD3)) return 3;
+    return 0;
+}
+
 void setup()
 {
     Serial.begin(115200);
@@ -142,22 +163,59 @@ void setup()
 
     setup_wifi();
     mac_addr = WiFi.macAddress();
+
     // Init SD card. Display if SD card is init propery or not.
     if (display.sdCardInit())
     {
         display.println("SD Card OK!");
     }
+
     request_doc_routine();
     //enter_deep_sleep();
 }
 
+void touchpad_routine()
+{
+    touchpad_pressed = read_touchpads();
+    if(touchpad_pressed == none)
+    {
+        touchpad_released = true;
+        touchpad_released_time = millis();
+        return;
+    }
+
+    if(!touchpad_released || touchpad_released_time + touchpad_cooldown_ms > millis())
+    {
+        return;
+    }
+    touchpad_released = false;
+
+    switch(touchpad_pressed)
+    {
+        case left:
+            if(view_mode == doc_view) prev_page();
+            else prev_doc();
+            break;
+        case middle:
+            view_mode = !view_mode;
+            break;
+        case right:
+            if(view_mode == doc_view) next_page();
+            else next_doc();
+            break;
+    }
+}
+
 void loop()
 {
-    // delay(15*1000);
-    // request_doc_routine();
-    // if (display.readTouchpad(PAD3))
-    // {
-        
-    // }
-    // not used, because of deep sleep
+    touchpad_routine();
+
+    if(check_new_doc_while_idle)
+    {
+        if(prev_millis + check_docs_interval_ms > millis())
+        {
+            prev_millis = millis();
+            request_doc_routine();
+        }
+    }
 }

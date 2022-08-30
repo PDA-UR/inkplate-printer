@@ -55,6 +55,7 @@ function ps2bmp(filename)
       "-dSAFER",
       "-r145",
       "-g825x1200",
+      "-dPDFFitPage",
       "-sOutputFile=" + file_wo_end + "_%d.bmp",
       filename,
     ]
