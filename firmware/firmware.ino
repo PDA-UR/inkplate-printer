@@ -4,10 +4,10 @@ Inkplate display(INKPLATE_3BIT);
 String mac_addr;
 
 enum {
-    none = 0,
-    left = 1,
-    middle = 2,
-    right = 3
+    tp_none = 0,
+    tp_left = 1,
+    tp_middle = 2,
+    tp_right = 3
 } touchpad_pressed;
 
 enum {
@@ -15,12 +15,16 @@ enum {
     doc_view
 } view_mode;
 
-bool check_new_doc_while_idle = true;
 long prev_millis = 0;
+bool check_new_doc_while_idle = true;
 int check_docs_interval_ms = 30 * 1000;
+
 bool touchpad_released = true;
 int touchpad_cooldown_ms = 1000;
 long touchpad_released_time = 0;
+
+int cur_page_num = 1;
+char cur_doc_name[255];
 
 void setup_wifi()
 {
@@ -146,20 +150,107 @@ void request_doc_routine()
 
         save_img_buff_to_sd(img_buf, doc_name + "_" + cur_page);
     }
+
+    strcpy(cur_doc_name, doc_name.c_str());
+    cur_page_num = 1;
+}
+
+void prev_page()
+{
+    if(cur_page_num <= 1) return;
+
+    String page_name = String(cur_doc_name) + "_" + (cur_page_num - 1) + ".bmp";
+    if(display.drawImage(page_name, display.BMP, 0, 0))
+    {
+        cur_page_num--;
+        display.display();
+    }
+    else 
+    {
+        Serial.print("cannot get previous page with num");
+        Serial.println(cur_page_num-1);
+    }
+}
+
+void next_page()
+{
+    String page_name = String(cur_doc_name) + "_" + (cur_page_num + 1) + ".bmp";
+    if(display.drawImage(page_name, display.BMP, 0, 0))
+    {
+        cur_page_num++;
+        display.display();
+    }
+    else 
+    {
+        Serial.print("cannot get next page with num: ");
+        Serial.print(cur_page_num+1);
+        Serial.print(" for doc: ");
+        Serial.println(page_name);
+    }
+}
+
+void prev_doc()
+{
+
+}
+
+void next_doc()
+{
+
 }
 
 int read_touchpads()
 {
-    if(display.readTouchpad(PAD1)) return 1;
-    if(display.readTouchpad(PAD2)) return 2;
-    if(display.readTouchpad(PAD3)) return 3;
-    return 0;
+    if(display.readTouchpad(PAD1)) touchpad_pressed = tp_left;
+    else if(display.readTouchpad(PAD2)) touchpad_pressed = tp_middle;
+    else if(display.readTouchpad(PAD3)) touchpad_pressed = tp_right;
+    else touchpad_pressed = tp_none;
+}
+
+void touchpad_routine()
+{
+    read_touchpads();
+    Serial.println(touchpad_pressed);
+    if(touchpad_pressed == tp_none && !touchpad_released)
+    {
+        Serial.println("nothing pressed");
+        touchpad_released = true;
+        touchpad_released_time = millis();
+        return;
+    }
+
+    if(!touchpad_released || touchpad_released_time + touchpad_cooldown_ms > millis())
+    {
+        // Serial.println("not released or on cooldown");
+        return;
+    }
+    if(touchpad_pressed > 0) touchpad_released = false;
+    
+    switch(touchpad_pressed)
+    {
+        case tp_left:
+            Serial.println("TP left");
+            if(view_mode == page_view) prev_page();
+            else prev_doc();
+            break;
+        case tp_middle:
+            // view_mode = !view_mode;
+            break;
+        case tp_right:
+            Serial.println("TP right");
+            if(view_mode == page_view) next_page();
+            else next_doc();
+            break;
+    }
 }
 
 void setup()
 {
     Serial.begin(115200);
     display.begin();
+    view_mode = page_view;
+    String foo = "job-1";
+    strcpy(cur_doc_name, foo.c_str());
 
     setup_wifi();
     mac_addr = WiFi.macAddress();
@@ -170,40 +261,8 @@ void setup()
         display.println("SD Card OK!");
     }
 
-    request_doc_routine();
+    //request_doc_routine();
     //enter_deep_sleep();
-}
-
-void touchpad_routine()
-{
-    touchpad_pressed = read_touchpads();
-    if(touchpad_pressed == none)
-    {
-        touchpad_released = true;
-        touchpad_released_time = millis();
-        return;
-    }
-
-    if(!touchpad_released || touchpad_released_time + touchpad_cooldown_ms > millis())
-    {
-        return;
-    }
-    touchpad_released = false;
-
-    switch(touchpad_pressed)
-    {
-        case left:
-            if(view_mode == doc_view) prev_page();
-            else prev_doc();
-            break;
-        case middle:
-            view_mode = !view_mode;
-            break;
-        case right:
-            if(view_mode == doc_view) next_page();
-            else next_doc();
-            break;
-    }
 }
 
 void loop()
@@ -215,7 +274,7 @@ void loop()
         if(prev_millis + check_docs_interval_ms > millis())
         {
             prev_millis = millis();
-            request_doc_routine();
+            //request_doc_routine();
         }
     }
 }
