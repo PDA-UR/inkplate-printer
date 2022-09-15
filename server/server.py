@@ -3,12 +3,22 @@ import os
 import io
 import string
 import sys
+import configparser
 
 app = Flask(__name__)
 
 clients = {}
 server_home_path = os.path.expanduser("~") + "/.inkplate-printer"
 img_queue_folder = server_home_path + "/" + "queue"
+
+
+# config at ./info.config
+config_properties = configparser.RawConfigParser()
+config_properties.read('./config.properties')
+config = dict(config_properties.items('PYTHON_SERVER'))
+
+print("Starting server at " + config['ip'] + ":" + config['port'])
+
 
 @app.route("/img")
 def img_route():
@@ -95,4 +105,4 @@ def create_folders():
 
 if __name__ == "__main__":
     create_folders()
-    app.run(host="0.0.0.0")
+    app.run(host = config['ip'], port = config['port'])

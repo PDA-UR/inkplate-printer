@@ -1,0 +1,4 @@
+Pillow
+pathlib
+pdf2image
+Flask
