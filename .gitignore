@@ -133,4 +133,4 @@ dist
 .pnp.*
 
 # npm
-package_lock.json
+package-lock.json
