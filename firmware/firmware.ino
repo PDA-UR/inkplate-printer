@@ -1,5 +1,11 @@
 #include "config.h"
 
+#include "Inkplate.h"
+#include "SdFat.h" 
+#include <HTTPClient.h>
+#include <WiFi.h>
+
+
 Inkplate display(INKPLATE_3BIT);
 String mac_addr;
 
