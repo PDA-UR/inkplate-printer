@@ -205,7 +205,7 @@ void next_doc()
 
 }
 
-int read_touchpads()
+void read_touchpads()
 {
     if(display.readTouchpad(PAD1)) touchpad_pressed = tp_left;
     else if(display.readTouchpad(PAD2)) touchpad_pressed = tp_middle;
@@ -246,6 +246,9 @@ void touchpad_routine()
             Serial.println("TP right");
             if(view_mode == page_view) next_page();
             else next_doc();
+            break;
+        case tp_none:
+            Serial.println("TP none");
             break;
     }
 }
