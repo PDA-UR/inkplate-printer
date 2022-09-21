@@ -1,5 +1,7 @@
 #include "Inkplate.h"
 
+// Fill out the marked variables and save this file as config.h
+
 const char SSID[] = "";    // Your WiFi SSID
 const char *PASSWORD = ""; // Your WiFi password
 const char HOST[] = "http://192.168.2.102:5000/"; // Printer host

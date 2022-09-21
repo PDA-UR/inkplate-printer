@@ -34,6 +34,7 @@ char cur_doc_name[255];
 
 void setup_wifi()
 {
+    Serial.println("Setup: WiFi");
     // Connect to Wi-Fi network with SSID and password
     WiFi.config(local_ip, gateway, subnet, dns1, dns2);
 
@@ -42,6 +43,7 @@ void setup_wifi()
         delay(500);
         Serial.print(".");
     }
+    Serial.println("Setup: WiFi connected");
 }
 
 void enter_deep_sleep()
@@ -85,13 +87,13 @@ uint8_t* download_file(String &doc_name, int &page_num)
     int len = 1200*825; // display resolution
     Serial.println("Downloading...");
     uint8_t *img_buf = display.downloadFile(url.c_str(), &len);
-    // uint8_t *img_buf = display.downloadFile("https://people.math.sc.edu/Burkardt/data/bmp/all_gray.bmp", &len);
     Serial.println("image downloaded");
     return img_buf;
 }
 
 bool server_has_new_file(String &doc_name,int &num_pages)
 {
+    return false;
     HTTPClient http;
     uint16_t port = 5000;
     String server_addr = String(HOST)
@@ -99,20 +101,17 @@ bool server_has_new_file(String &doc_name,int &num_pages)
                         + mac_addr;
     http.begin(server_addr);
 
+    Serial.println("Requesting from server address: " + server_addr);
     int response_code = http.GET();
     if(response_code == 200)
     {
         String payload = http.getString();
-        Serial.print("payload:\t");
-        Serial.println(payload);
-        int index = payload.indexOf("_");
-        doc_name = payload.substring(0, index);
-        num_pages = payload.substring(index + 1).toInt();
+        Serial.printf("payload:\t %s\n", payload.c_str());
+        int index = payload.indexOf("_"); // payload containing job name & num pages, e.g. job-1_3
+        doc_name = payload.substring(0, index); // job name, e.g. job-1
+        num_pages = payload.substring(index + 1).toInt(); // number of pages, e.g. 3
 
-        Serial.print("server has new file with name: ");
-        Serial.print(doc_name);
-        Serial.print("\tpages:");
-        Serial.println(num_pages);
+        Serial.printf("server has new job %s (%i pages)\n", doc_name.c_str(), num_pages);
         return true;
     }
     else if(response_code == 201)
@@ -205,8 +204,20 @@ void next_doc()
 
 }
 
+#define formatBool(b) ((b) ? "true" : "false")
+
+void print_touchpad_status () 
+{
+    Serial.printf("triggered touchpads: left: %s middle: %s right: %s \n", 
+      formatBool(display.readTouchpad(PAD1)), 
+      formatBool(display.readTouchpad(PAD2)),
+      formatBool(display.readTouchpad(PAD3))
+    );  
+}
+
 void read_touchpads()
 {
+    // print_touchpad_status();
     if(display.readTouchpad(PAD1)) touchpad_pressed = tp_left;
     else if(display.readTouchpad(PAD2)) touchpad_pressed = tp_middle;
     else if(display.readTouchpad(PAD3)) touchpad_pressed = tp_right;
@@ -216,7 +227,7 @@ void read_touchpads()
 void touchpad_routine()
 {
     read_touchpads();
-    Serial.println(touchpad_pressed);
+    // Serial.println(touchpad_pressed);
     if(touchpad_pressed == tp_none && !touchpad_released)
     {
         Serial.println("nothing pressed");
@@ -248,7 +259,8 @@ void touchpad_routine()
             else next_doc();
             break;
         case tp_none:
-            Serial.println("TP none");
+            // no button pressed, ignore
+            // Serial.println("TP none");
             break;
     }
 }
@@ -257,6 +269,8 @@ void setup()
 {
     Serial.begin(115200);
     display.begin();
+    Serial.println("Setup begin");
+    
     view_mode = page_view;
     String foo = "job-1";
     strcpy(cur_doc_name, foo.c_str());
@@ -268,9 +282,12 @@ void setup()
     if (display.sdCardInit())
     {
         display.println("SD Card OK!");
+    } else 
+    {
+      display.println("SD Card ERROR!");
     }
 
-    //request_doc_routine();
+    request_doc_routine();
     //enter_deep_sleep();
 }
 
