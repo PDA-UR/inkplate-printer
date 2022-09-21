@@ -134,3 +134,6 @@ dist
 
 # npm
 package-lock.json
+
+# credentials
+config.h
