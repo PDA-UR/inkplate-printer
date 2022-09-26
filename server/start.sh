@@ -37,5 +37,5 @@ else
     echo "Starting in PROD mode"
     python3 ./page_server/server.py &
     node ./print_server/index.js &
-    npm --prefix "./web_server" run build && npm --prefix "./web_server" run preview
+    npm --prefix "./web_server" run preview
 fi
