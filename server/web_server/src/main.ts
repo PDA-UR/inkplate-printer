@@ -1,23 +1,12 @@
-import "./style.css";
-import typescriptLogo from "./typescript.svg";
-import { setupCounter } from "./counter";
+import { pwaInfo } from 'virtual:pwa-info'
 
-document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
+// eslint-disable-next-line no-console
+console.log(pwaInfo)
+
+document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
+   <img src="/favicon.svg" alt="PWA Logo" width="60" height="60">
     <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
+    <p>Testing SW with <b>injectRegister=auto,inline,script</b></p>
   </div>
-`;
-
-setupCounter(document.querySelector<HTMLButtonElement>("#counter")!);
+`

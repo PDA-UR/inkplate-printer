@@ -1,18 +1,48 @@
-// vite.config.js
-import { defineConfig } from "vite";
-import * as YAML from "js-yaml";
-import fs from "fs";
-// import yaml file
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
-const config_filepath = __dirname + "/../config.yml",
-	config = (YAML.load(fs.readFileSync(config_filepath, "utf-8")) as any)
-		?.WEB_SERVER,
-	port = config?.port ?? "8080";
-
-console.log(`Starting WEB server on port ${port}`);
+const injectRegister = (process.env.SW_INLINE ?? 'auto') as 'inline' | 'auto' | 'script'
+const selfDestroying = process.env.SW_DESTROY === 'true'
 
 export default defineConfig({
-	server: {
-		port,
-	},
-});
+  build: {
+    sourcemap: process.env.SOURCE_MAP === 'true',
+  },
+  plugins: [
+    VitePWA({
+      mode: 'development',
+      base: '/',
+      includeAssets: ['favicon.svg'],
+      injectRegister,
+      selfDestroying,
+      manifest: {
+        name: 'PWA Router',
+        short_name: 'PWA Router',
+        theme_color: '#ffffff',
+        icons: [
+          {
+            src: 'pwa-192x192.png', // <== don't add slash, for testing
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/pwa-512x512.png', // <== don't remove slash, for testing
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png', // <== don't add slash, for testing
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
+      },
+      devOptions: {
+        enabled: process.env.SW_DEV === 'true',
+        /* when using generateSW the PWA plugin will switch to classic */
+        navigateFallback: 'index.html',
+      },
+    }),
+  ],
+})
