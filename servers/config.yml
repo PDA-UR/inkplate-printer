@@ -1,0 +1,9 @@
+PRINT_SERVER:
+  printer_name: "Inkplate"
+  port: 49050
+
+PAGE_SERVER:
+  port: 5000
+
+WEB_SERVER:
+  port: 8000
