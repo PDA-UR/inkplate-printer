@@ -17,10 +17,25 @@ sequenceDiagram
         Note over S,D: device index, (option about others)
 
 
-        S -) D: Show page signal
-        Note over S,D: page index
-        S -) D: Pages ready signal
-        Note over S,D: num pages
+        critical Download: Start page
+            S -) D: Show page signal
+            Note over S,D: page index
+            D ->> S: Page download request
+            Note over S,D: page index [1]
+            S ->> D: Page download response
+            Note over S,D: page image file [1]
+            D ->> D: Save & display page
+        end
+
+        opt Download: Remaining pages
+            S -) D: Pages ready signal
+            Note over S,D: num pages
+            D ->> S: Page download request
+            Note over S,D: page index [x]
+            S ->> D: Page download response
+            Note over S,D: page image file [x]
+            D ->> D: Save pages
+        end
 
     end
 
