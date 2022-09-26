@@ -4,6 +4,7 @@ import io
 import string
 import sys
 import configparser
+import yaml
 
 app = Flask(__name__)
 
@@ -12,13 +13,15 @@ server_home_path = os.path.expanduser("~") + "/.inkplate-printer"
 img_queue_folder = server_home_path + "/" + "queue"
 
 
-# config at ./info.config
-config_properties = configparser.RawConfigParser()
-config_properties.read('./config.properties')
-config = dict(config_properties.items('PYTHON_SERVER'))
+dirname = os.path.dirname(__file__)
+config_filepath = os.path.join(dirname, '../config.yml')
+config = yaml.safe_load(open(config_filepath))['PAGE_SERVER']
+PORT = config['port']
 
-print("Starting server at " + config['ip'] + ":" + config['port'])
+# check if anything else is running on the port and kill it
+os.system("lsof -t -i tcp:" + str(PORT) + " | xargs kill")
 
+print("Starting PAGE server on port " + str(PORT))
 
 @app.route("/img")
 def img_route():
@@ -105,4 +108,4 @@ def create_folders():
 
 if __name__ == "__main__":
     create_folders()
-    app.run(host = config['ip'], port = config['port'])
+    app.run(host = "0.0.0.0", port = PORT)

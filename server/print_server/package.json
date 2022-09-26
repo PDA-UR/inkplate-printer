@@ -1,7 +1,8 @@
 {
 	"dependencies": {
 		"gm": "^1.23.1",
-		"ipp-printer": "^1.0.0"
+		"ipp-printer": "^1.0.0",
+		"yamljs": "^0.3.0"
 	},
 	"name": "server",
 	"version": "1.0.0",
@@ -9,7 +10,7 @@
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"setup": "npm install && pip3 install -r ./requirements.txt",
-		"start": "node ./index.js & python3 ./server.py"
+		"start": "node ./index.js"
 	},
 	"author": "",
 	"license": "ISC",
