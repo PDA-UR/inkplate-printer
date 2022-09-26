@@ -4,3 +4,6 @@ PRINT_SERVER:
 
 PAGE_SERVER:
   port: 5000
+
+WEB_SERVER:
+  port: 8000

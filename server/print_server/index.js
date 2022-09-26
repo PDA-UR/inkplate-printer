@@ -1,10 +1,12 @@
 var fs = require("fs"),
 	gm = require("gm"),
-	YAML = require("yamljs");
+	YAML = require("js-yaml");
 var Printer = require("ipp-printer");
 
 const config_filepath = __dirname + "/../config.yml";
-const config = YAML.load(config_filepath).PRINT_SERVER;
+const config = YAML.load(
+	fs.readFileSync(config_filepath, "utf-8")
+).PRINT_SERVER;
 
 console.log(
 	`Starting PRINT server named ${config.printer_name} on port ${config.port}`

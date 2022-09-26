@@ -2,7 +2,7 @@
 	"dependencies": {
 		"gm": "^1.23.1",
 		"ipp-printer": "^1.0.0",
-		"yamljs": "^0.3.0"
+		"js-yaml": "^4.1.0"
 	},
 	"name": "server",
 	"version": "1.0.0",
