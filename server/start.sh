@@ -32,10 +32,10 @@ if [ "$1" == "--dev" ]; then
     # Print server (node)
     node ./print_server/index.js &
     # Web server (node + vite)
-    npm --prefix "./web_server" run dev
+    npm --prefix "./web_server" run build:serve
 else
     echo "Starting in PROD mode"
     python3 ./page_server/server.py &
     npm --prefix "./print_server" run start &
-    npm --prefix "./web_server" run start
+    npm --prefix "./web_server" run build:serve
 fi

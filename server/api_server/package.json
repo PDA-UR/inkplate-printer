@@ -1,0 +1,16 @@
+{
+	"name": "api_server",
+	"version": "1.0.0",
+	"description": "Inkplate API",
+	"main": "server.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Alexander Weichart",
+	"license": "ISC",
+	"dependencies": {
+		"express": "^4.18.1",
+		"glob": "^8.0.3",
+		"socket.io": "^4.5.2"
+	}
+}

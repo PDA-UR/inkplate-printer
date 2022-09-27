@@ -23,6 +23,16 @@ os.system("lsof -t -i tcp:" + str(PORT) + " | xargs kill")
 
 print("Starting PAGE server on port " + str(PORT))
 
+@app.route("/hello")
+def hello():
+    return Response(
+        "Hello World!",
+        mimetype="text/plain",
+        # set cors local network
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+
 @app.route("/img")
 def img_route():
     print(request)
