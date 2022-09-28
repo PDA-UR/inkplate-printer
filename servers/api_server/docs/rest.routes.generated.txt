@@ -1,0 +1,16 @@
+router                                                                                                         
+ ├── query                                         *                                                           
+ ├── expressInit                                   *                                                           
+ ├── bound dispatch                                /                                                           GET
+ │    └── webapp                                   /                                                           GET
+ │   
+ ├── bound dispatch                                /cert                                                       GET
+ │    └── on                                       /                                                           GET
+ │   
+ ├── bound dispatch                                /api/example                                                GET
+ │    └── on                                       /                                                           GET
+ │   
+ ├── bound dispatch                                /api/img                                                    GET
+ │    └── on                                       /                                                           GET
+ │   
+ └── serveStatic                                   *                                                           

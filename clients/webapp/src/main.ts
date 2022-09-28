@@ -9,7 +9,7 @@ const socket = io();
 
 socket.on("connect", () => {
 	console.log("connected");
-	socket.emit("hello", "world");
+	socket.emit("example", "world");
 });
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `

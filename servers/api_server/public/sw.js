@@ -90,11 +90,11 @@ define(['./workbox-3589c0c5'], (function (workbox) { 'use strict';
    */
 
   workbox.precacheAndRoute([{
-    "url": "assets/index.385676e2.js",
+    "url": "assets/index.d3bcd43d.js",
     "revision": null
   }, {
     "url": "index.html",
-    "revision": "9aca90e7690337f826fc58ca45b26b6e"
+    "revision": "479e910074b556707db8e6e7bb87821d"
   }, {
     "url": "registerSW.js",
     "revision": "1872c500de691dce40960bb85481de07"

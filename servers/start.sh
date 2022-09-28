@@ -26,16 +26,13 @@ done
 # 2. start servers
 
 if [ "$1" == "--dev" ]; then
+    . env/dev.env
     echo "Starting in DEV mode"
-    # Page server (python)
     python3 ./page_server/server.py &
-    # Print server (node)
-    node ./print_server/index.js &
-    # Web server (node + vite)
-    npm --prefix "./web_server" run build:serve
+    npm --prefix "./api_server" run dev
 else
+    . env/prod.env
     echo "Starting in PROD mode"
     python3 ./page_server/server.py &
-    npm --prefix "./print_server" run start &
-    npm --prefix "./web_server" run build:serve
+    npm --prefix "./print_server" run start
 fi

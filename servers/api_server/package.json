@@ -4,7 +4,9 @@
 	"description": "Inkplate API",
 	"main": "server.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "NODE_ENV=development nodemon server.js",
+		"start": "NODE_ENV=production node server.js"
 	},
 	"author": "Alexander Weichart",
 	"license": "ISC",
@@ -12,5 +14,8 @@
 		"express": "^4.18.1",
 		"glob": "^8.0.3",
 		"socket.io": "^4.5.2"
+	},
+	"devDependencies": {
+		"express-print-routes": "^1.0.0"
 	}
 }
