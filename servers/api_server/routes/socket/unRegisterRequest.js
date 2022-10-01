@@ -3,8 +3,10 @@
 const QueueManager = require("../../QueueManager");
 
 const on = (socket, event) => {
-	console.log("device ready for new page chain", event);
-	QueueManager.enqueue(socket, event);
+	console.log("unregister", event);
+	if (event?.uuid) {
+		QueueManager.dequeue(event.uuid);
+	}
 };
 
 module.exports = on;

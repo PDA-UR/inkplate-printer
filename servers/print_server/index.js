@@ -2,11 +2,18 @@ var fs = require("fs"),
 	gm = require("gm"),
 	YAML = require("js-yaml");
 var Printer = require("ipp-printer");
+const path = require("path");
 
-const config_filepath = __dirname + "/../config.yml";
-const config = YAML.load(
-	fs.readFileSync(config_filepath, "utf-8")
-).PRINT_SERVER;
+const queueFolderPath = path.join(
+	require("os").homedir(),
+	".inkplate-printer",
+	"print_queue"
+);
+
+const config = {
+	printer_name: "Inkplate Printer",
+	port: 3000,
+};
 
 console.log(
 	`Starting PRINT server named ${config.printer_name} on port ${config.port}`
@@ -18,33 +25,29 @@ var printer = new Printer({
 });
 
 printer.on("job", function (job) {
+	if (printQueueIsOpen()) {
+		saveDocument(job);
+	} else {
+		console.log("Print queue is closed", queueFolderPath);
+		job.cancel();
+	}
+});
+
+function saveDocument(job) {
 	console.log("[job %d] Printing document: %s", job.id, job.name);
 	var filename = "job-" + job.id + ".ps"; // .ps = PostScript
-	var file = fs.createWriteStream(filename);
+	const filePath = path.join(queueFolderPath, filename);
+	var file = fs.createWriteStream(filePath);
 	job.pipe(file);
 
 	job.on("end", function () {
-		console.log("[job %d] Document saved as %s", job.id, filename);
-		ps2bmp(filename);
+		console.log("[job %d] Document saved as %s", job.id, file.path);
+		// ps2bmp(filename);
 	});
-});
+}
 
-function convert(filename) {
-	console.log("converting postscript");
-	gm(filename)
-		.density(150, 150)
-		// .resizeExact(1200,825)
-		//.monochrome()
-		.write(filename + ".png", function (err) {
-			if (err) {
-				console.log("converting postscript failed");
-				console.log(err);
-			} else {
-				console.log("converting postscript finished");
-				python_script(filename + ".png");
-				// client(filename+'.png');
-			}
-		});
+function printQueueIsOpen() {
+	return fs.existsSync(queueFolderPath);
 }
 
 function ps2bmp(filename) {

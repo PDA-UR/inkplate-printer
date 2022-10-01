@@ -7,6 +7,7 @@ DataManager.load().then(onApplicationStart);
 function onApplicationStart() {
 	const socketConnection = new SocketController();
 	const viewController = new ViewController();
+	let isRegistering = false;
 	document.body.style.backgroundColor = "red";
 
 	socketConnection.on(SocketController.ON_CONNECT, () => {
@@ -20,6 +21,11 @@ function onApplicationStart() {
 	});
 
 	viewController.on(ViewController.ON_REQUEST_PAGE_CHAIN_CLICKED, () => {
-		socketConnection.sendRegisterRequest();
+		isRegistering = !isRegistering;
+		if (isRegistering) {
+			socketConnection.sendRegisterRequest();
+		} else {
+			socketConnection.sendUnregisterRequest();
+		}
 	});
 }
