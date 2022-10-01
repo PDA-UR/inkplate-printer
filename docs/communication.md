@@ -17,15 +17,15 @@ sequenceDiagram
     %% -): asynchronous
 
     critical Device Registration
-        D -) S: Register request
+        D -) S: Register request message
         Note over S,D: resolution, color depth
-        S -) D: Register response
+        S -) D: Register success message
         Note over S,D: device index
 
         P -) S: New document printed
 
         critical Download: Start page
-            S -) D: Show page signal
+            S -) D: Show page message
             Note over S,D: page index
             D ->> S: Page download request
             Note over S,D: page index
@@ -35,7 +35,7 @@ sequenceDiagram
         end
 
         opt Download: Remaining pages
-            S -) D: Pages ready signal
+            S -) D: Pages ready message
             Note over S,D: num pages
             loop For each image
                 D ->> S: Page download request
@@ -68,7 +68,7 @@ sequenceDiagram
     participant S as API Server
     participant D as Device
 
-    D -) S: Page update signal
+    D -) S: Page update message
     Note over S,D: page index
 
     S ->> S: Update page state
@@ -83,6 +83,6 @@ sequenceDiagram
     participant S as API Server
     participant D as Device
 
-    S -) D: Show page signal
+    S -) D: Show page message
     Note over S,D: page index
 ```

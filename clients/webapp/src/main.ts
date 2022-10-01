@@ -1,15 +1,18 @@
-import { pwaInfo } from "virtual:pwa-info";
-import { io } from "socket.io-client";
+import SocketConnection from "./SocketConnnection";
 
-// eslint-disable-next-line no-console
-console.log(pwaInfo);
+const socketConnection = new SocketConnection();
 
-// socket url is same url as the origin of this page
-const socket = io();
-
-socket.on("connect", () => {
+socketConnection.on(SocketConnection.ON_CONNECT, () => {
 	console.log("connected");
-	socket.emit("example", "world");
+	// change bg of body to green
+
+	document.body.style.backgroundColor = "green";
+});
+
+socketConnection.on(SocketConnection.ON_DISCONNECT, () => {
+	console.log("disconnected");
+	// change bg of body to red
+	document.body.style.backgroundColor = "red";
 });
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `

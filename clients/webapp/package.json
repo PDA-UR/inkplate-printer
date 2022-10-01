@@ -21,6 +21,7 @@
 		"vite-plugin-pwa": "^0.13.1"
 	},
 	"dependencies": {
+		"observable-slim": "^0.1.6",
 		"socket.io-client": "^4.5.2"
 	}
 }

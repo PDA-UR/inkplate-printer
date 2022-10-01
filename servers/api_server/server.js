@@ -45,8 +45,8 @@ function startExpress() {
 	// serve static files in public/ under /
 	app.use(express.static("public"));
 
-	server.listen(3000, () => {
-		console.log("listening on *:3000");
+	server.listen(8000, () => {
+		console.log("listening on *:5000");
 	});
 
 	if (process.env.NODE_ENV === "development") {
