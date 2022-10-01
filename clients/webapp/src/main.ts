@@ -1,24 +1,25 @@
-import SocketConnection from "./SocketConnnection";
+import SocketController from "./controllers/SocketController";
+import ViewController from "./controllers/ViewController";
+import DataManager from "./data/DataManager";
 
-const socketConnection = new SocketConnection();
+DataManager.load().then(onApplicationStart);
 
-socketConnection.on(SocketConnection.ON_CONNECT, () => {
-	console.log("connected");
-	// change bg of body to green
-
-	document.body.style.backgroundColor = "green";
-});
-
-socketConnection.on(SocketConnection.ON_DISCONNECT, () => {
-	console.log("disconnected");
-	// change bg of body to red
+function onApplicationStart() {
+	const socketConnection = new SocketController();
+	const viewController = new ViewController();
 	document.body.style.backgroundColor = "red";
-});
 
-document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
-  <div>
-   <img src="/favicon.svg" alt="PWA Logo" width="60" height="60">
-    <h1>Vite + TypeScript</h1>
-    <p>Testing SW with <b>injectRegister=auto,inline,script</b></p>
-  </div>
-`;
+	socketConnection.on(SocketController.ON_CONNECT, () => {
+		console.log("connected");
+		document.body.style.backgroundColor = "green";
+	});
+
+	socketConnection.on(SocketController.ON_DISCONNECT, () => {
+		console.log("disconnected");
+		document.body.style.backgroundColor = "red";
+	});
+
+	viewController.on(ViewController.ON_REQUEST_PAGE_CHAIN_CLICKED, () => {
+		socketConnection.sendRegisterRequest();
+	});
+}
