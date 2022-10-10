@@ -27,14 +27,18 @@ class QueueManager {
 
 	static dequeue = (uuid) => {
 		console.log("Dequeueing device", uuid);
-		this.#waitingDevices.delete(uuid);
-		let index = 1;
-		for (const device of QueueManager.#waitingDevices.values()) {
-			this.#updateDeviceIndex(device.socket, index);
-			index++;
-		}
-		if (QueueManager.#waitingDevices.size === 0) {
-			this.#closeQueue();
+		const deviceToDequeue = QueueManager.#waitingDevices.get(uuid);
+		if (deviceToDequeue !== undefined) {
+			this.#updateDeviceIndex(deviceToDequeue.socket, -1);
+			this.#waitingDevices.delete(uuid);
+			let index = 1;
+			for (const device of QueueManager.#waitingDevices.values()) {
+				this.#updateDeviceIndex(device.socket, index);
+				index++;
+			}
+			if (QueueManager.#waitingDevices.size === 0) {
+				this.#closeQueue();
+			}
 		}
 	};
 

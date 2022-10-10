@@ -4,7 +4,7 @@ const os = require("os");
 
 // Url: /api/img
 // Params:
-// 	client_mac: string
+// 	client: string
 // 	doc_name: string
 // 	page_num: number
 

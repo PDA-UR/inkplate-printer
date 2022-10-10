@@ -5,6 +5,9 @@ export default class SocketController extends Observable {
 	public static ON_DISCONNECT = "disconnect";
 	public static ON_CONNECT = "connect";
 
+	public static ON_UPDATE_DEVICE_INDEX = "updateDeviceIndex";
+	public static ON_SHOW_PAGE = "showPage";
+
 	private readonly socket = io();
 
 	constructor() {
@@ -24,21 +27,21 @@ export default class SocketController extends Observable {
 
 	// register
 
-	public sendRegisterRequest(): void {
+	public sendRegisterRequest(uuid: string): void {
 		console.log("sendRegisterRequest");
 		this.socket.emit("registerRequest", {
 			screenResolution: {
 				width: window.innerWidth,
 				height: window.innerHeight,
 			},
-			uuid: "123",
+			uuid,
 		});
 	}
 
-	public sendUnregisterRequest(): void {
+	public sendUnregisterRequest(uuid: string): void {
 		console.log("sendUnregisterRequest");
 		this.socket.emit("unRegisterRequest", {
-			uuid: "123",
+			uuid,
 		});
 	}
 
@@ -57,10 +60,12 @@ export default class SocketController extends Observable {
 	// page show
 	private onShowPage = (pageIndex: number): void => {
 		console.log("onShowPage", pageIndex);
+		this.notifyAll(SocketController.ON_SHOW_PAGE, pageIndex);
 	};
 
 	// device index
 	private onUpdateDeviceIndex = (deviceIndex: number): void => {
 		console.log("onUpdateDeviceIndex", deviceIndex);
+		this.notifyAll(SocketController.ON_UPDATE_DEVICE_INDEX, deviceIndex);
 	};
 }

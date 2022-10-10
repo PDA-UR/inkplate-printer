@@ -1,27 +1,102 @@
 import { get, set } from "idb-keyval";
 import { v4 as uuidv4 } from "uuid";
-import PageChainModel from "./PageChainModel";
+import PageChainInfoModel from "./PageChainInfoModel";
+import PageModel from "./PageModel";
 
 export default class DataManager {
-	static async savePageIndex(pageIndex: number) {
-		await set("pageIndex", pageIndex);
+	// ~~~~~~~~~~~~~ Device index ~~~~~~~~~~~~ //
+
+	static async saveDeviceIndex(deviceIndex: number) {
+		await set("deviceIndex", deviceIndex);
 	}
 
-	static async getPageIndex() {
-		return await get("pageIndex");
+	static async getDeviceIndex(): Promise<number> {
+		const deviceIndex = await get("deviceIndex");
+		if (deviceIndex === undefined) {
+			return Promise.reject("deviceIndex is undefined");
+		}
+		return deviceIndex;
 	}
 
-	static async savePageChain(pageChain: PageChainModel) {
+	// ~~~~~~~~~~~ Page chain info ~~~~~~~~~~~ //
+
+	static async savePageChainInfo(pageChain: PageChainInfoModel) {
 		await set("pageChain", pageChain);
 	}
 
-	static async getPageChain() {
-		return await get("pageChain");
+	static async getPageChainInfo(): Promise<PageChainInfoModel> {
+		const pageChain = await get("pageChain");
+		if (pageChain === undefined) {
+			return Promise.reject("pageChain is undefined");
+		}
+		return pageChain;
 	}
 
-	static async getUUID() {
-		return await get("uuid");
+	static async hasPageChain(): Promise<boolean> {
+		return this.getPageChainInfo()
+			.then(() => true)
+			.catch(() => false);
 	}
+
+	// ~~~~~~~~~~ Current page index ~~~~~~~~~ //
+
+	static async saveCurrentPageIndex(pageIndex: number) {
+		await set("pageIndex", pageIndex);
+	}
+
+	static async getCurrentPageIndex(): Promise<number> {
+		const index = await get("pageIndex");
+		if (index !== undefined) {
+			return index;
+		} else {
+			return Promise.reject("Index undefined");
+		}
+	}
+
+	static async stepCurrentPageIndex(doGoNext: boolean): Promise<number> {
+		const currentPageIndex = await this.getCurrentPageIndex();
+		const newPageIndex = currentPageIndex + (doGoNext ? 1 : -1);
+		await this.saveCurrentPageIndex(newPageIndex);
+		return newPageIndex;
+	}
+
+	// ~~~~~~~~~~~~~ Single pages ~~~~~~~~~~~~ //
+
+	static async getPage(pageIndex: number): Promise<PageModel> {
+		// mock data for now
+		// TODO: remove this
+		const mockImage = "https://openclipart.org/image/800px/269610";
+		return {
+			image: mockImage,
+			index: pageIndex,
+		};
+
+		const image: string | undefined = await get("page-" + pageIndex.toString());
+		if (image === undefined) {
+			return Promise.reject("image is undefined");
+		}
+		return {
+			index: pageIndex,
+			image: image,
+		} as PageModel;
+	}
+
+	static async savePage(page: PageModel) {
+		await set("page-" + page.index.toString(), page);
+	}
+
+	// ~~~~~~~~~~~~~~~~ UUID ~~~~~~~~~~~~~~~~ //
+
+	static async getUUID(): Promise<string> {
+		const uuid = await get("uuid");
+		if (uuid !== undefined) {
+			return uuid;
+		} else {
+			return Promise.reject("UUID undefined");
+		}
+	}
+
+	// ~~~~~~~~~ Initialization stuff ~~~~~~~~ //
 
 	static async load() {
 		if (!(await DataManager.dataStoreIsValid())) {
