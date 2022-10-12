@@ -1,26 +1,20 @@
 export default class ApiClient {
-	static async getPageImage(
-		docName: string,
-		pageIndex: number,
-		uuid: string
-	): Promise<string> {
-		const url = "/api/img";
-		const urlParams = {
+	static async getPageImage(pageIndex: number, uuid: string): Promise<Blob> {
+		const url = "/api/img?";
+		const params = new URLSearchParams({
 			client: uuid,
-			doc_name: docName,
-			page_num: pageIndex,
-		};
+			page_num: pageIndex.toString(),
+		}).toString();
 
+		console.log("Fetching page", pageIndex, "from", url + params);
 		// response if of type image/bmp
-		const response = await fetch(url, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(urlParams),
-		});
+		const response = await fetch(url + params);
 
-		const image = await response.text();
-		return image;
+		if (response.status !== 200) {
+			return Promise.reject("Failed to get page image");
+		}
+
+		const imageBlob = await response.blob();
+		return imageBlob;
 	}
 }

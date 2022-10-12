@@ -29,12 +29,22 @@ export default class ViewController extends Observable {
 
 	// ~~~~~~~~~~~~ Public methods ~~~~~~~~~~~ //
 
-	public showPage = (pageModel: PageModel): void => {
-		console.log("showPage", pageModel);
-		this.$currentPageImage.src = pageModel.image;
+	public setPage = (pageModel: PageModel): void => {
+		this.$deviceIndex.hidden = true;
+		const url = URL.createObjectURL(pageModel.image);
+		this.$currentPageImage.src = url;
+		this.$nextPageButton.disabled = false;
+		this.$previousPageButton.disabled = false;
 	};
 
-	public updateDeviceIndex = (deviceIndex: number): void => {
+	public setBlank() {
+		this.$deviceIndex.hidden = true;
+		this.$nextPageButton.disabled = true;
+		this.$previousPageButton.disabled = true;
+		this.$currentPageImage.src = "";
+	}
+
+	public setRegistering = (deviceIndex: number): void => {
 		if (deviceIndex === -1) {
 			this.$deviceIndex.hidden = true;
 		} else {

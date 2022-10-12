@@ -1,4 +1,5 @@
 const os = require("os");
+const fs = require("fs");
 
 // REST API route to download a page
 
@@ -11,10 +12,10 @@ const os = require("os");
 const route = {
 	type: "get",
 	on: (req, res) => {
+		console.log("GET /api/img");
 		const clientMac = req.query.client,
-			docName = req.query.doc_name,
 			pageNum = req.query.page_num,
-			filePath = getFilePath(clientMac, docName, pageNum),
+			filePath = getFilePath(clientMac, pageNum),
 			bitmap = getBitmap(filePath);
 
 		if (bitmap) {
@@ -30,17 +31,17 @@ const route = {
 };
 
 const serverHomePath = os.homedir() + "/.inkplate-printer",
-	queuePath = serverHomePath + "/queue";
+	imgPath = serverHomePath + "/img";
 
-const getFilePath = (client_mac, doc_name, page_num) => {
-	return queuePath + "/" + doc_name + "/" + page_num + ".bmp";
+const getFilePath = (client_mac, page_num) => {
+	return imgPath + "/" + client_mac + "/" + page_num + ".bmp";
 };
 
 const getBitmap = (filePath) => {
 	try {
 		return fs.readFileSync(filePath);
-	} catch {
-		console.error("Page image file not found: " + filePath);
+	} catch (e) {
+		console.error("Page image file not found: " + filePath, e);
 		return null;
 	}
 };

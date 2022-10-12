@@ -7,6 +7,9 @@ router
  ├── bound dispatch                                /cert                                                       GET
  │    └── on                                       /                                                           GET
  │   
+ ├── bound dispatch                                /api/dev                                                    GET
+ │    └── on                                       /                                                           GET
+ │   
  ├── bound dispatch                                /api/example                                                GET
  │    └── on                                       /                                                           GET
  │   

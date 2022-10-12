@@ -9,6 +9,8 @@ const server = https.createServer({ key, cert }, app);
 const glob = require("glob");
 const { Server } = require("socket.io");
 const io = new Server(server);
+const DeviceManager = require("./DeviceManager");
+const QueueManager = require("./QueueManager");
 
 const socketRouteHandlers = [],
 	restRouteHandlers = [];
@@ -16,6 +18,7 @@ const socketRouteHandlers = [],
 initSocketRouteHandlers()
 	.then(() => initRestRouteHandlers())
 	.then(() => {
+		QueueManager.init();
 		startExpress();
 		startSocketIO();
 	});
@@ -64,10 +67,13 @@ function startExpress() {
 // Starts the socket.io server
 function startSocketIO() {
 	io.on("connection", (socket) => {
-		console.log("a user connected");
 		for (const [message, callback] of socketRouteHandlers) {
 			socket.on(message, (e) => callback(socket, e));
 		}
+
+		socket.on("disconnect", () => {
+			DeviceManager.unregister(socket.id);
+		});
 	});
 }
 
