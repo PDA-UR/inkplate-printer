@@ -1,11 +1,13 @@
 import { io } from "socket.io-client";
 import DataManager from "../data/DataManager";
 import { Observable } from "../lib/Observable";
+import ConnectionStatus from "../lib/ConnectionStatus";
 
 export default class SocketController extends Observable {
 	public static ON_DISCONNECT = "disconnect";
 	public static ON_CONNECT = "connect";
 
+	public static ON_REGISTER = "register";
 	public static ON_REGISTERED = "registered";
 
 	public static ON_UPDATE_DEVICE_INDEX = "updateDeviceIndex";
@@ -13,6 +15,7 @@ export default class SocketController extends Observable {
 	public static ON_PAGES_READY = "pagesReady";
 
 	private readonly socket = io();
+	private connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED;
 
 	constructor() {
 		super();
@@ -21,45 +24,37 @@ export default class SocketController extends Observable {
 
 	// basic
 
-	public connect(): void {
-		this.socket.connect();
-	}
-
-	public isConnected = (): boolean => {
-		return this.socket.connected;
+	public getConnectionStatus = (): ConnectionStatus => {
+		return this.connectionStatus;
 	};
 
 	// registering
 
 	public sendRegisterMessage(uuid: string): void {
-		console.log("register");
-		this.socket.emit("register", {
+		this.connectionStatus = ConnectionStatus.REGISTERING;
+		this.socket.emit(SocketController.ON_REGISTER, {
 			uuid,
 			screenResolution: {
 				width: window.innerWidth,
 				height: window.innerHeight,
 			},
 		});
+
+		this.notifyAll(SocketController.ON_REGISTER);
 	}
 
 	// queuing
 
-	public sendEnqueueMessage(uuid: string): void {
-		console.log("sendEnqueueMessage");
-		this.socket.emit("enqueue", {
-			screenResolution: {
-				width: window.innerWidth,
-				height: window.innerHeight,
-			},
-			uuid,
-		});
+	public sendEnqueueMessage(): void {
+		this.connectionStatus = ConnectionStatus.QUEUEING;
+		this.socket.emit("enqueue");
 	}
 
-	public sendDequeueMessage(uuid: string): void {
-		console.log("sendDequeueMessage");
-		this.socket.emit("dequeue", {
-			uuid,
-		});
+	public sendDequeueMessage(): void {
+		this.connectionStatus = this.socket.connected
+			? ConnectionStatus.CONNECTED
+			: ConnectionStatus.DISCONNECTED;
+		this.socket.emit("dequeue");
 	}
 
 	private registerEvents = (): void => {
@@ -69,9 +64,7 @@ export default class SocketController extends Observable {
 			});
 		});
 
-		this.socket.on(SocketController.ON_REGISTERED, (wasSuccessful) => {
-			if (wasSuccessful) this.notifyAll(SocketController.ON_REGISTERED);
-		});
+		this.socket.on(SocketController.ON_REGISTERED, this.onRegistered);
 
 		this.socket.on(SocketController.ON_DISCONNECT, () => {
 			this.notifyAll(SocketController.ON_DISCONNECT);
@@ -84,21 +77,28 @@ export default class SocketController extends Observable {
 		);
 	};
 
+	private onRegistered = (wasSuccessful: boolean): void => {
+		if (wasSuccessful) {
+			this.connectionStatus = ConnectionStatus.CONNECTED;
+			this.notifyAll(SocketController.ON_REGISTERED);
+		} else {
+			this.connectionStatus = ConnectionStatus.DISCONNECTED;
+			this.notifyAll(SocketController.ON_DISCONNECT);
+		}
+	};
+
 	// pages ready
 	private onPagesReady = (numPages: number | undefined): void => {
-		console.log("onPagesReady", numPages);
 		this.notifyAll(SocketController.ON_PAGES_READY, numPages);
 	};
 
 	// page show
 	private onShowPage = (pageIndex: number): void => {
-		console.log("onShowPage", pageIndex);
 		this.notifyAll(SocketController.ON_SHOW_PAGE, pageIndex);
 	};
 
 	// device index
 	private onUpdateDeviceIndex = (deviceIndex: number): void => {
-		console.log("onUpdateDeviceIndex", deviceIndex);
 		this.notifyAll(SocketController.ON_UPDATE_DEVICE_INDEX, deviceIndex);
 	};
 }

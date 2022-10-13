@@ -4,7 +4,8 @@ import DataManager from "./data/DataManager";
 import PageChainInfoModel from "./data/PageChainInfoModel";
 import PageModel from "./data/PageModel";
 import { AppEvent } from "./lib/AppEvent";
-import State, { AppMode } from "./lib/AppState";
+import State, { DisplayMode } from "./lib/AppState";
+import ConnectionStatus from "./lib/ConnectionStatus";
 
 DataManager.load().then(onApplicationStart);
 
@@ -12,51 +13,43 @@ function onApplicationStart() {
 	const socketConnection = new SocketController();
 	const viewController = new ViewController();
 
-	document.body.style.backgroundColor = "orange";
+	initState(viewController, socketConnection);
 
 	// ~~~~~~~~~~~~ Socket events ~~~~~~~~~~~~ //
 
+	socketConnection.on(SocketController.ON_REGISTER, () => {
+		console.log("registering");
+		viewController.setConnectionStatus(socketConnection.getConnectionStatus());
+	});
+
 	socketConnection.on(SocketController.ON_REGISTERED, async () => {
 		console.log("connected");
-		document.body.style.backgroundColor = "green";
-		const hasPageChain = await DataManager.hasPageChain();
-		if (hasPageChain) {
-			State.mode = AppMode.DISPLAYING;
-			const page = await DataManager.getCurrentPage();
-			if (page) {
-				viewController.setPage(page);
-			}
-		} else {
-			State.mode = AppMode.BLANK;
-			viewController.setBlank();
-		}
+		viewController.setConnectionStatus(socketConnection.getConnectionStatus());
 	});
 
 	socketConnection.on(SocketController.ON_DISCONNECT, () => {
 		console.log("disconnected");
 		document.body.style.backgroundColor = "red";
-		// reset queue stuff
-		if (State.mode === AppMode.REGISTERING) {
-			State.toggleRegisterMode();
+		if (socketConnection.getConnectionStatus() === ConnectionStatus.QUEUEING) {
+			State.toggleDisplayMode(false);
 			viewController.setRegistering(-1);
 		}
 	});
 
 	socketConnection.on(
 		SocketController.ON_SHOW_PAGE,
-		(event: AppEvent<number>) => {
+		async (event: AppEvent<number>) => {
 			const pageIndex = event.data;
 			if (pageIndex !== undefined) {
-				DataManager.saveCurrentPageIndex(pageIndex)
-					.then(() => DataManager.getPage(pageIndex))
-					.then((pageModel) => {
-						if (pageModel !== undefined) {
-							viewController.setPage(pageModel);
-						} else {
-							console.error("pageModel is undefined");
-						}
-					})
-					.catch((error) => console.error(error));
+				try {
+					await DataManager.saveCurrentPageIndex(pageIndex);
+					const pageModel = await DataManager.getPage(pageIndex);
+
+					if (pageModel !== undefined) viewController.setPage(pageModel);
+					else console.error("pageModel is undefined");
+				} catch (e) {
+					console.error(e);
+				}
 			} else {
 				console.error("invalid page index");
 			}
@@ -65,12 +58,15 @@ function onApplicationStart() {
 
 	socketConnection.on(
 		SocketController.ON_UPDATE_DEVICE_INDEX,
-		(event: AppEvent<number>) => {
+		async (event: AppEvent<number>) => {
 			const deviceIndex = event.data;
 			if (deviceIndex !== undefined) {
-				DataManager.saveDeviceIndex(deviceIndex).then(() => {
+				try {
+					await DataManager.saveDeviceIndex(deviceIndex);
 					viewController.setRegistering(deviceIndex);
-				});
+				} catch (e) {
+					console.error(e);
+				}
 			} else {
 				console.error("invalid device index");
 			}
@@ -79,33 +75,33 @@ function onApplicationStart() {
 
 	socketConnection.on(
 		SocketController.ON_PAGES_READY,
-		(event: AppEvent<number>) => {
+		async (event: AppEvent<number>) => {
 			console.log("pages ready main.ts", event);
-			const numPages = event.data;
-			if (numPages !== undefined) {
-				DataManager.getDeviceIndex()
-					.then((deviceIndex) =>
-						DataManager.saveCurrentPageIndex(deviceIndex ?? 1)
-					)
-					.then(() => {
-						const pageChainInfo: PageChainInfoModel = {
-							pageCount: numPages,
-						};
-						return DataManager.savePageChainInfo(pageChainInfo);
-					})
-					.then(() => DataManager.getCurrentPage())
-					.then((pageModel: PageModel | undefined) => {
-						if (pageModel !== undefined) {
-							viewController.setPage(pageModel);
-						} else {
-							console.error("no page model");
-						}
-					})
-					.then(DataManager.getAllExceptCurrentPage) // load the rest
-					.then(() => {
+			const pageCount = event.data;
+			if (pageCount !== undefined) {
+				try {
+					const deviceIndex = await DataManager.getDeviceIndex();
+					if (deviceIndex !== undefined) {
+						await DataManager.resetPageChainData();
+
+						console.log("device index", deviceIndex);
+						await DataManager.saveCurrentPageIndex(deviceIndex);
+						await DataManager.savePageChainInfo({
+							pageCount,
+						});
+						const pageModel = await DataManager.getCurrentPage();
+
+						if (pageModel !== undefined) viewController.setPage(pageModel);
+						else throw new Error("pageModel is undefined");
+
+						await DataManager.getAllExceptCurrentPage();
 						console.log("all pages loaded");
-					})
-					.catch((error) => console.error(error));
+					} else {
+						throw new Error("device index is undefined");
+					}
+				} catch (e) {
+					console.error(e);
+				}
 			} else {
 				console.error("invalid num pages");
 			}
@@ -115,13 +111,14 @@ function onApplicationStart() {
 	// ~~~~~~~~~~~~~ View events ~~~~~~~~~~~~~ //
 
 	viewController.on(ViewController.ON_REGISTER_DEVICE_CLICKED, async () => {
-		const mode = await State.toggleRegisterMode();
 		const uuid = await DataManager.getUUID();
 		if (uuid !== undefined) {
-			if (mode === AppMode.REGISTERING) {
-				socketConnection.sendEnqueueMessage(uuid);
+			if (
+				socketConnection.getConnectionStatus() !== ConnectionStatus.QUEUEING
+			) {
+				socketConnection.sendEnqueueMessage();
 			} else {
-				socketConnection.sendDequeueMessage(uuid);
+				socketConnection.sendDequeueMessage();
 			}
 		} else {
 			console.error("uuid is undefined");
@@ -137,32 +134,45 @@ function onApplicationStart() {
 	);
 
 	const onNavigatePage = async (doGoNext: boolean): Promise<void> => {
-		if (State.mode === AppMode.DISPLAYING) {
-			const newPageIndex = await DataManager.stepCurrentPageIndex(doGoNext);
-			if (newPageIndex !== undefined) {
-				return DataManager.getPage(newPageIndex)
-					.then((pageModel) => {
-						if (pageModel) viewController.setPage;
-					})
-					.catch((e) => console.error(e));
-			} else {
-				// the page does not exist, meaning that the
-				// start or end of the page chain has been reached
-				console.error("newPageIndex is undefined");
+		if (
+			socketConnection.getConnectionStatus() !== ConnectionStatus.QUEUEING &&
+			State.mode === DisplayMode.DISPLAYING
+		) {
+			try {
+				const newPageIndex = await DataManager.stepCurrentPageIndex(doGoNext);
+				if (newPageIndex !== undefined) {
+					const pageModel = await DataManager.getPage(newPageIndex);
+					if (pageModel) viewController.setPage(pageModel);
+				} else {
+					console.log("limit reached");
+				}
+			} catch (e) {
+				console.error(e);
 			}
-		} else if (State.mode === AppMode.REGISTERING) {
-			// abort register mode, go into display mode
-			console.log("abort register mode");
-			const newMode = await State.toggleRegisterMode();
-			const uuid = await DataManager.getUUID();
-			if (uuid !== undefined) {
-				socketConnection.sendDequeueMessage(uuid);
-			} else {
-				console.error("uuid is undefined");
-			}
-			if (newMode == AppMode.DISPLAYING) {
+		} else {
+			// abort queueing
+			socketConnection.sendDequeueMessage();
+			if (State.mode === DisplayMode.DISPLAYING) {
 				onNavigatePage(doGoNext);
 			}
 		}
 	};
+}
+
+async function initState(
+	viewController: ViewController,
+	socketConnection: SocketController
+) {
+	const hasPageChain = await DataManager.hasPageChain();
+	if (hasPageChain) {
+		State.mode = DisplayMode.DISPLAYING;
+		const page = await DataManager.getCurrentPage();
+		if (page) {
+			viewController.setPage(page);
+		}
+	} else {
+		State.mode = DisplayMode.BLANK;
+		viewController.setBlank();
+	}
+	viewController.setConnectionStatus(socketConnection.getConnectionStatus());
 }

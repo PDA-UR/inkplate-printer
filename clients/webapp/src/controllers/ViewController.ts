@@ -1,5 +1,6 @@
 import PageModel from "../data/PageModel";
 import { Observable } from "../lib/Observable";
+import ConnectionStatus from "../lib/ConnectionStatus";
 
 export default class ViewController extends Observable {
 	public static ON_NEXT_PAGE_CLICKED = "nextPageClicked";
@@ -51,6 +52,20 @@ export default class ViewController extends Observable {
 			this.$deviceIndex.hidden = false;
 			this.$deviceIndex.innerText = deviceIndex.toString();
 		}
+	};
+
+	public setConnectionStatus = (connectionStatus: ConnectionStatus): void => {
+		this.$requestPageChainButton.disabled =
+			connectionStatus !== ConnectionStatus.CONNECTED;
+
+		const bgColor =
+			connectionStatus === ConnectionStatus.CONNECTED
+				? "green"
+				: connectionStatus === ConnectionStatus.REGISTERING
+				? "yellow"
+				: "red";
+
+		document.body.style.backgroundColor = bgColor;
 	};
 
 	// ~~~~~~~~~~~~ Event handling ~~~~~~~~~~~ //

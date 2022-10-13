@@ -1,30 +1,24 @@
-import DataManager from "../data/DataManager";
-
-export enum AppMode {
+export enum DisplayMode {
 	BLANK,
-	REGISTERING,
 	DISPLAYING,
 }
 
 class AppState {
-	mode: AppMode;
+	mode: DisplayMode;
 
 	constructor() {
-		this.mode = AppMode.BLANK;
+		this.mode = DisplayMode.BLANK;
 	}
 
-	public toggleRegisterMode = async (): Promise<AppMode> => {
-		if (this.mode !== AppMode.REGISTERING) {
-			this.mode = AppMode.REGISTERING;
+	public toggleDisplayMode = (doToggleOn?: boolean) => {
+		if (doToggleOn === undefined) {
+			this.mode =
+				this.mode === DisplayMode.DISPLAYING
+					? DisplayMode.BLANK
+					: DisplayMode.DISPLAYING;
 		} else {
-			const hasPageChain = await DataManager.hasPageChain();
-			if (hasPageChain) {
-				this.mode = AppMode.DISPLAYING;
-			} else {
-				this.mode = AppMode.BLANK;
-			}
+			this.mode = doToggleOn ? DisplayMode.DISPLAYING : DisplayMode.BLANK;
 		}
-		console.log("toggle", this);
 		return this.mode;
 	};
 }

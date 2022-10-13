@@ -8,8 +8,9 @@ class DeviceManager {
 	};
 
 	static unregister = (socketId) => {
-		console.log("Unregistering device", socketId);
+		const device = this.devices.get(socketId);
 		this.devices.delete(socketId);
+		return device;
 	};
 
 	static getDevice = (socketId) => {

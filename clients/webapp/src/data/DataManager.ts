@@ -17,6 +17,17 @@ export default class DataManager {
 
 	// ~~~~~~~~~~~ Page chain info ~~~~~~~~~~~ //
 
+	static async resetPageChainData() {
+		const pageChainInfo = await DataManager.getPageChainInfo();
+		if (pageChainInfo !== undefined) {
+			set("pageChain", undefined);
+			for (let i = 1; i < pageChainInfo.pageCount; i++) {
+				await set("page-" + i.toString(), undefined);
+			}
+			set("pageIndex", undefined);
+		}
+	}
+
 	static async savePageChainInfo(pageChain: PageChainInfoModel) {
 		await set("pageChain", pageChain);
 	}
@@ -45,40 +56,47 @@ export default class DataManager {
 	): Promise<number | undefined> {
 		const currentPageIndex = await DataManager.getCurrentPageIndex();
 		if (currentPageIndex !== undefined) {
-			const newPageIndex = currentPageIndex + (doGoNext ? 1 : -1);
-			await DataManager.saveCurrentPageIndex(newPageIndex);
-			return newPageIndex;
-		} else {
-			return undefined;
+			const pageChainInfo = await DataManager.getPageChainInfo();
+
+			const maxPageIndex =
+				pageChainInfo?.pageCount === undefined ? 0 : pageChainInfo?.pageCount;
+
+			const newPageIndex = doGoNext
+				? currentPageIndex + 1
+				: currentPageIndex - 1;
+
+			if (newPageIndex > 0 && newPageIndex <= maxPageIndex) {
+				await DataManager.saveCurrentPageIndex(newPageIndex);
+				return newPageIndex;
+			}
 		}
+		return undefined;
 	}
 
 	// ~~~~~~~~~~~~~ Single pages ~~~~~~~~~~~~ //
 
 	static async getPage(pageIndex: number): Promise<PageModel | undefined> {
-		console.log("Getting page", pageIndex);
 		const pageModel: PageModel | undefined = await get(
 			"page-" + pageIndex.toString()
 		);
-		console.log("Got image", pageModel);
 		if (pageModel === undefined || pageModel.image === undefined) {
 			// try to download the page
-			const uuid = await DataManager.getUUID();
-			if (uuid === undefined) {
-				return undefined;
-			}
-
-			return ApiClient.getPageImage(pageIndex, uuid)
-				.then((image) => {
+			try {
+				const uuid = await DataManager.getUUID();
+				const imageBlob = await ApiClient.getPageImage(pageIndex, uuid!);
+				if (imageBlob !== undefined) {
 					const pageModel: PageModel = {
 						index: pageIndex,
-						image: image,
+						image: imageBlob,
 					};
-					return DataManager.savePage(pageModel);
-				})
-				.then(() => DataManager.getPage(pageIndex));
-		}
-		return pageModel;
+					await DataManager.savePage(pageModel);
+					return pageModel;
+				} else throw new Error("Image blob is undefined");
+			} catch (e) {
+				console.error("Failed to get page image: ", e);
+				return undefined;
+			}
+		} else return pageModel;
 	}
 
 	static async savePage(page: PageModel) {
@@ -86,13 +104,11 @@ export default class DataManager {
 	}
 
 	static async getCurrentPage(): Promise<PageModel | undefined> {
-		console.log("Getting current page");
 		const pageIndex = await DataManager.getCurrentPageIndex();
-		console.log("Current page index is", pageIndex);
-		if (pageIndex === undefined) {
-			return undefined;
+		if (pageIndex !== undefined) {
+			return await DataManager.getPage(pageIndex);
 		}
-		return await DataManager.getPage(pageIndex);
+		return undefined;
 	}
 
 	// ~~~~~~~~~~~~ Multiple pages ~~~~~~~~~~~ //
@@ -108,7 +124,7 @@ export default class DataManager {
 		}
 
 		const pages: PageModel[] = [];
-		for (let i = 0; i < pageChainInfo.pageCount; i++) {
+		for (let i = 1; i < pageChainInfo.pageCount; i++) {
 			if (i !== pageIndex) {
 				const pm = await DataManager.getPage(i);
 				if (pm) pages.push(pm);
