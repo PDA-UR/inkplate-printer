@@ -9,22 +9,22 @@
 		<meta name="msapplication-TileColor" content="#FFFFFF" />
 		<meta name="theme-color" content="#ffffff" />
 		<title>Vite App</title>
-		<style>
-			#app {
-				text-align: center;
-			}
-		</style>
-		<script type="module" crossorigin src="/assets/index.9667c4ae.js"></script>
+		<!-- style -->
+		
+		<script type="module" crossorigin src="/assets/index.cd8e5cfc.js"></script>
+		<link rel="stylesheet" href="/assets/index.8ef34411.css">
 	<link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
 	<body>
 		<div id="app">
 			<img id="page-image" />
-			<span id="device-index"></span>
-			<div id="page-nav-buttons">
-				<button id="previous-page-button">Previous</button>
-				<button id="next-page-button">Next</button>
+			<div id="hud-container" class="inactive">
+				<div id="device-index"></div>
+				<div id="page-nav-buttons">
+					<div id="previous-page-button"></div>
+					<div id="next-page-button"></div>
+				</div>
+				<div id="request-page-chain-button" disabled>Request Document</div>
 			</div>
-			<button id="request-page-chain-button" disabled>Request</button>
 		</div>
 		
 	</body>

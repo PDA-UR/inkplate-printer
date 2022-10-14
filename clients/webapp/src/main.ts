@@ -110,7 +110,7 @@ function onApplicationStart() {
 
 	// ~~~~~~~~~~~~~ View events ~~~~~~~~~~~~~ //
 
-	viewController.on(ViewController.ON_REGISTER_DEVICE_CLICKED, async () => {
+	viewController.on(ViewController.ON_ENQUEUE, async () => {
 		const uuid = await DataManager.getUUID();
 		if (uuid !== undefined) {
 			if (
@@ -125,11 +125,9 @@ function onApplicationStart() {
 		}
 	});
 
-	viewController.on(ViewController.ON_NEXT_PAGE_CLICKED, () =>
-		onNavigatePage(true)
-	);
+	viewController.on(ViewController.ON_NEXT_PAGE, () => onNavigatePage(true));
 
-	viewController.on(ViewController.ON_PREVIOUS_PAGE_CLICKED, () =>
+	viewController.on(ViewController.ON_PREVIOUS_PAGE, () =>
 		onNavigatePage(false)
 	);
 

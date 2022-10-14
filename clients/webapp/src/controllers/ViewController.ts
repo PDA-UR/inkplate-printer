@@ -1,12 +1,21 @@
 import PageModel from "../data/PageModel";
 import { Observable } from "../lib/Observable";
 import ConnectionStatus from "../lib/ConnectionStatus";
+import GestureController from "./GestureController";
 
 export default class ViewController extends Observable {
-	public static ON_NEXT_PAGE_CLICKED = "nextPageClicked";
-	public static ON_PREVIOUS_PAGE_CLICKED = "previousPageClicked";
-	public static ON_REGISTER_DEVICE_CLICKED = "registerDeviceClicked";
+	public static ON_NEXT_PAGE = "nextPageClicked";
+	public static ON_PREVIOUS_PAGE = "previousPageClicked";
+	public static ON_ENQUEUE = "enqueueClicked";
 
+	// key events
+	private static NEXT_PAGE_KEYS = ["ArrowRight", "l", "L"];
+	private static PREVIOUS_PAGE_KEYS = ["ArrowLeft", "h", "H"];
+	private static ENQUEUE_KEYS = ["Space", "j", "J"];
+
+	private readonly $hudContainer = document.getElementById(
+		"hud-container"
+	) as HTMLDivElement;
 	private readonly $nextPageButton = document.getElementById(
 		"next-page-button"
 	) as HTMLButtonElement;
@@ -23,6 +32,8 @@ export default class ViewController extends Observable {
 		"device-index"
 	) as HTMLSpanElement;
 
+	private readonly touchController = new GestureController(this.$hudContainer);
+
 	constructor() {
 		super();
 		this.registerEvents();
@@ -31,7 +42,6 @@ export default class ViewController extends Observable {
 	// ~~~~~~~~~~~~ Public methods ~~~~~~~~~~~ //
 
 	public setPage = (pageModel: PageModel): void => {
-		this.$deviceIndex.hidden = true;
 		const url = URL.createObjectURL(pageModel.image);
 		this.$currentPageImage.src = url;
 		this.$nextPageButton.disabled = false;
@@ -39,7 +49,7 @@ export default class ViewController extends Observable {
 	};
 
 	public setBlank() {
-		this.$deviceIndex.hidden = true;
+		this.toggleDeviceIndex(false);
 		this.$nextPageButton.disabled = true;
 		this.$previousPageButton.disabled = true;
 		this.$currentPageImage.src = "";
@@ -47,9 +57,9 @@ export default class ViewController extends Observable {
 
 	public setRegistering = (deviceIndex: number): void => {
 		if (deviceIndex === -1) {
-			this.$deviceIndex.hidden = true;
+			this.toggleDeviceIndex(false);
 		} else {
-			this.$deviceIndex.hidden = false;
+			this.toggleDeviceIndex(true);
 			this.$deviceIndex.innerText = deviceIndex.toString();
 		}
 	};
@@ -71,16 +81,71 @@ export default class ViewController extends Observable {
 	// ~~~~~~~~~~~~ Event handling ~~~~~~~~~~~ //
 
 	private registerEvents = (): void => {
+		// Click
+
 		this.$nextPageButton.addEventListener("click", () => {
-			this.notifyAll(ViewController.ON_NEXT_PAGE_CLICKED);
+			this.notifyAll(ViewController.ON_NEXT_PAGE);
 		});
 
 		this.$previousPageButton.addEventListener("click", () => {
-			this.notifyAll(ViewController.ON_PREVIOUS_PAGE_CLICKED);
+			this.notifyAll(ViewController.ON_PREVIOUS_PAGE);
 		});
 
 		this.$requestPageChainButton.addEventListener("click", () => {
-			this.notifyAll(ViewController.ON_REGISTER_DEVICE_CLICKED);
+			this.notifyAll(ViewController.ON_ENQUEUE);
 		});
+
+		document.addEventListener("keydown", (event) => {
+			if (event.key === "ArrowRight") {
+				this.notifyAll(ViewController.ON_NEXT_PAGE);
+			} else if (event.key === "ArrowLeft") {
+				this.notifyAll(ViewController.ON_PREVIOUS_PAGE);
+			}
+		});
+
+		// Key
+
+		document.addEventListener("keydown", (event) => {
+			if (ViewController.NEXT_PAGE_KEYS.includes(event.key)) {
+				this.notifyAll(ViewController.ON_NEXT_PAGE);
+			} else if (ViewController.PREVIOUS_PAGE_KEYS.includes(event.key)) {
+				this.notifyAll(ViewController.ON_PREVIOUS_PAGE);
+			} else if (ViewController.ENQUEUE_KEYS.includes(event.key)) {
+				this.notifyAll(ViewController.ON_ENQUEUE);
+			}
+		});
+
+		// Touch
+
+		this.touchController.on(GestureController.ON_SWIPE_LEFT, () =>
+			this.notifyAll(ViewController.ON_NEXT_PAGE)
+		);
+		this.touchController.on(GestureController.ON_SWIPE_RIGHT, () =>
+			this.notifyAll(ViewController.ON_PREVIOUS_PAGE)
+		);
+		this.touchController.on(GestureController.ON_SWIPE_DOWN, () =>
+			this.notifyAll(ViewController.ON_ENQUEUE)
+		);
+		this.touchController.on(GestureController.ON_TAP, () => this.toggleHud());
+	};
+
+	private toggleHud = (on?: boolean) => {
+		this.toggleClass(this.$hudContainer, "inactive", on);
+	};
+
+	private toggleDeviceIndex = (on?: boolean) => {
+		this.toggleClass(this.$deviceIndex, "inactive", !on);
+	};
+
+	private toggleClass = (
+		element: HTMLElement,
+		className: string,
+		on?: boolean
+	) => {
+		if (on === undefined) {
+			element.classList.toggle(className);
+		} else {
+			element.classList.toggle(className, on);
+		}
 	};
 }
