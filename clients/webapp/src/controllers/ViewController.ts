@@ -28,11 +28,16 @@ export default class ViewController extends Observable {
 	private readonly $currentPageImage = document.getElementById(
 		"page-image"
 	) as HTMLImageElement;
-	private readonly $deviceIndex = document.getElementById(
+	private readonly $deviceIndexInfo = document.getElementById(
 		"device-index"
 	) as HTMLSpanElement;
+	private readonly $connectionStatus = document.getElementById(
+		"connection-status"
+	) as HTMLDivElement;
 
-	private readonly touchController = new GestureController(this.$hudContainer);
+	private readonly gestureController = new GestureController(
+		this.$hudContainer
+	);
 
 	constructor() {
 		super();
@@ -42,40 +47,47 @@ export default class ViewController extends Observable {
 	// ~~~~~~~~~~~~ Public methods ~~~~~~~~~~~ //
 
 	public setPage = (pageModel: PageModel): void => {
+		console.log("set page", pageModel);
 		const url = URL.createObjectURL(pageModel.image);
 		this.$currentPageImage.src = url;
-		this.$nextPageButton.disabled = false;
-		this.$previousPageButton.disabled = false;
+		this.enable(this.$nextPageButton);
+		this.enable(this.$previousPageButton);
 	};
 
-	public setBlank() {
+	public setBlank = () => {
+		console.log("set blank");
 		this.toggleDeviceIndex(false);
-		this.$nextPageButton.disabled = true;
-		this.$previousPageButton.disabled = true;
 		this.$currentPageImage.src = "";
-	}
+		this.disable(this.$nextPageButton);
+		this.disable(this.$previousPageButton);
+	};
 
 	public setRegistering = (deviceIndex: number): void => {
 		if (deviceIndex === -1) {
 			this.toggleDeviceIndex(false);
 		} else {
 			this.toggleDeviceIndex(true);
-			this.$deviceIndex.innerText = deviceIndex.toString();
+			this.$deviceIndexInfo.innerText = deviceIndex.toString();
 		}
 	};
 
 	public setConnectionStatus = (connectionStatus: ConnectionStatus): void => {
 		this.$requestPageChainButton.disabled =
 			connectionStatus !== ConnectionStatus.CONNECTED;
+		this.$connectionStatus.classList.remove("blink");
 
-		const bgColor =
-			connectionStatus === ConnectionStatus.CONNECTED
-				? "green"
-				: connectionStatus === ConnectionStatus.REGISTERING
-				? "yellow"
-				: "red";
-
-		document.body.style.backgroundColor = bgColor;
+		switch (connectionStatus) {
+			case ConnectionStatus.CONNECTED:
+				this.$connectionStatus.style.backgroundColor = "green";
+				break;
+			case ConnectionStatus.QUEUEING:
+				this.$connectionStatus.style.backgroundColor = "green";
+				this.$connectionStatus.classList.add("blink");
+				break;
+			case ConnectionStatus.REGISTERING:
+				this.$connectionStatus.style.backgroundColor = "yellow";
+				break;
+		}
 	};
 
 	// ~~~~~~~~~~~~ Event handling ~~~~~~~~~~~ //
@@ -83,15 +95,24 @@ export default class ViewController extends Observable {
 	private registerEvents = (): void => {
 		// Click
 
-		this.$nextPageButton.addEventListener("click", () => {
+		this.$nextPageButton.addEventListener("click", (e) => {
+			this.consume(e);
+			console.log("Next page button clicked");
 			this.notifyAll(ViewController.ON_NEXT_PAGE);
 		});
 
-		this.$previousPageButton.addEventListener("click", () => {
+		this.$previousPageButton.addEventListener("click", (e) => {
+			this.consume(e);
 			this.notifyAll(ViewController.ON_PREVIOUS_PAGE);
 		});
 
-		this.$requestPageChainButton.addEventListener("click", () => {
+		this.$requestPageChainButton.addEventListener("click", (e) => {
+			this.consume(e);
+			this.notifyAll(ViewController.ON_ENQUEUE);
+		});
+
+		this.$deviceIndexInfo.addEventListener("click", (e) => {
+			this.consume(e);
 			this.notifyAll(ViewController.ON_ENQUEUE);
 		});
 
@@ -117,16 +138,19 @@ export default class ViewController extends Observable {
 
 		// Touch
 
-		this.touchController.on(GestureController.ON_SWIPE_LEFT, () =>
+		this.gestureController.on(GestureController.ON_SWIPE_LEFT, () =>
 			this.notifyAll(ViewController.ON_NEXT_PAGE)
 		);
-		this.touchController.on(GestureController.ON_SWIPE_RIGHT, () =>
+		this.gestureController.on(GestureController.ON_SWIPE_RIGHT, () =>
 			this.notifyAll(ViewController.ON_PREVIOUS_PAGE)
 		);
-		this.touchController.on(GestureController.ON_SWIPE_DOWN, () =>
+		this.gestureController.on(GestureController.ON_SWIPE_DOWN, () =>
 			this.notifyAll(ViewController.ON_ENQUEUE)
 		);
-		this.touchController.on(GestureController.ON_TAP, () => this.toggleHud());
+		this.$hudContainer.addEventListener("click", () => {
+			console.log("HUD clicked");
+			this.toggleHud();
+		});
 	};
 
 	private toggleHud = (on?: boolean) => {
@@ -134,7 +158,7 @@ export default class ViewController extends Observable {
 	};
 
 	private toggleDeviceIndex = (on?: boolean) => {
-		this.toggleClass(this.$deviceIndex, "inactive", !on);
+		this.toggleClass(this.$deviceIndexInfo, "inactive", !on);
 	};
 
 	private toggleClass = (
@@ -147,5 +171,19 @@ export default class ViewController extends Observable {
 		} else {
 			element.classList.toggle(className, on);
 		}
+	};
+
+	// util function to stop an event
+	private consume = (event: Event) => {
+		event.preventDefault();
+		event.stopPropagation();
+	};
+
+	private disable = (element: HTMLElement) => {
+		element.classList.add("disabled");
+	};
+
+	private enable = (element: HTMLElement) => {
+		element.classList.remove("disabled");
 	};
 }

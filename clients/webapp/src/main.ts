@@ -29,7 +29,6 @@ function onApplicationStart() {
 
 	socketConnection.on(SocketController.ON_DISCONNECT, () => {
 		console.log("disconnected");
-		document.body.style.backgroundColor = "red";
 		if (socketConnection.getConnectionStatus() === ConnectionStatus.QUEUEING) {
 			State.toggleDisplayMode(false);
 			viewController.setRegistering(-1);
@@ -111,6 +110,7 @@ function onApplicationStart() {
 	// ~~~~~~~~~~~~~ View events ~~~~~~~~~~~~~ //
 
 	viewController.on(ViewController.ON_ENQUEUE, async () => {
+		console.log("enqueue");
 		const uuid = await DataManager.getUUID();
 		if (uuid !== undefined) {
 			if (
@@ -120,6 +120,9 @@ function onApplicationStart() {
 			} else {
 				socketConnection.sendDequeueMessage();
 			}
+			viewController.setConnectionStatus(
+				socketConnection.getConnectionStatus()
+			);
 		} else {
 			console.error("uuid is undefined");
 		}
@@ -132,20 +135,21 @@ function onApplicationStart() {
 	);
 
 	const onNavigatePage = async (doGoNext: boolean): Promise<void> => {
-		if (
-			socketConnection.getConnectionStatus() !== ConnectionStatus.QUEUEING &&
-			State.mode === DisplayMode.DISPLAYING
-		) {
-			try {
-				const newPageIndex = await DataManager.stepCurrentPageIndex(doGoNext);
-				if (newPageIndex !== undefined) {
-					const pageModel = await DataManager.getPage(newPageIndex);
-					if (pageModel) viewController.setPage(pageModel);
-				} else {
-					console.log("limit reached");
+		if (socketConnection.getConnectionStatus() !== ConnectionStatus.QUEUEING) {
+			if (State.mode === DisplayMode.DISPLAYING) {
+				try {
+					const newPageIndex = await DataManager.stepCurrentPageIndex(doGoNext);
+					if (newPageIndex !== undefined) {
+						const pageModel = await DataManager.getPage(newPageIndex);
+						if (pageModel) viewController.setPage(pageModel);
+					} else {
+						console.log("limit reached");
+					}
+				} catch (e) {
+					console.error(e);
 				}
-			} catch (e) {
-				console.error(e);
+			} else {
+				console.log("not in display mode");
 			}
 		} else {
 			// abort queueing

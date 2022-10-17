@@ -21,6 +21,15 @@ body {
 	height: 100%;
 }
 
+#hud-bg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
 #hud-container.inactive > * {
 	display: none;
 	visibility: hidden;
@@ -53,28 +62,26 @@ body {
 }
 
 #request-page-chain-button {
-	position: relative;
-	left: 20%;
-	top: 85%;
+	position: absolute;
+	bottom: 0;
 	width: 60%;
-	height: 2em;
+	height: 10vh;
 
 	padding: 0.1em;
 
 	background-color: rgba(0, 0, 0, 0.8);
 
-	font-size: 5rem;
-	line-height: 2em;
+	border-top-left-radius: 0.2em;
+	border-top-right-radius: 0.2em;
+
+	font-size: 5.5vw;
+	line-height: 10vh;
 	color: white;
 }
 
 #device-index {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	width: 5em;
-	height: 5em;
+	width: 4em;
+	height: 4em;
 
 	background-color: rgba(0, 0, 0, 0.8);
 	border-radius: 0.3em;
@@ -82,7 +89,7 @@ body {
 	text-align: center;
 	font-size: 5rem;
 	color: white;
-	line-height: 5em;
+	line-height: 4em;
 }
 
 #device-index.inactive {
@@ -90,10 +97,82 @@ body {
 	visibility: hidden;
 }
 
+#connection-status {
+	position: absolute;
+	top: 1vh;
+	right: 1vh;
+
+	width: 0.5em;
+	height: 0.5em;
+
+	border-radius: 50%;
+}
+
+#connection-status.connected {
+	background-color: green;
+}
+
+#connection-status.disconnected {
+	background-color: red;
+}
+
+#connection-status.connecting {
+	background-color: yellow;
+}
+
 /* image */
 
 #page-image {
-	height: 100%;
 	/*make image fit 100% vertically*/
+	height: 100%;
 	object-fit: contain;
+}
+
+/* general */
+
+.button {
+	cursor: pointer;
+	user-select: none;
+}
+
+.x-centered {
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+}
+
+.y-centered {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+.xy-centered {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.disabled {
+	opacity: 0.5;
+}
+
+.disabled:hover {
+	cursor: not-allowed;
+}
+
+.shadow {
+	box-shadow: rgba(50, 50, 105, 0.15) 0px 2px 5px 0px,
+		rgba(0, 0, 0, 0.05) 0px 1px 1px 0px;
+}
+
+.blink {
+	animation: blink 0.5s infinite;
+}
+
+@keyframes blink {
+	50% {
+		opacity: 0;
+	}
 }

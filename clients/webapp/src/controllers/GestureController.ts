@@ -8,7 +8,6 @@ export default class GestureController extends Observable {
 	public static readonly ON_SWIPE_UP = "swipeUp";
 	public static readonly ON_SWIPE_LEFT = "swipeLeft";
 	public static readonly ON_SWIPE_RIGHT = "swipeRight";
-	public static readonly ON_TAP = "tap";
 
 	private readonly $element: HTMLElement;
 	private readonly swipeThreshold: number;
@@ -50,27 +49,23 @@ export default class GestureController extends Observable {
 
 	private onTouchEnd = (x: number, y: number) => {
 		const xDiff = this.touchStartX - x;
+		const xDiffAbs = Math.abs(xDiff);
 		const yDiff = this.touchStartY - y;
+		const yDiffAbs = Math.abs(yDiff);
 
-		if (Math.abs(xDiff) > Math.abs(yDiff)) {
-			if (xDiff > this.swipeThreshold) {
+		if (xDiffAbs > yDiffAbs && xDiffAbs > this.swipeThreshold) {
+			if (xDiff > 0) {
 				this.notifyAll(GestureController.ON_SWIPE_LEFT);
 			} else {
 				this.notifyAll(GestureController.ON_SWIPE_RIGHT);
 			}
-		} else {
-			if (yDiff > this.swipeThreshold) {
+		} else if (xDiffAbs < yDiffAbs && yDiffAbs > this.swipeThreshold) {
+			if (yDiff > 0) {
 				this.notifyAll(GestureController.ON_SWIPE_UP);
 			} else {
 				this.notifyAll(GestureController.ON_SWIPE_DOWN);
 			}
 		}
-
-		// tap event
-		if (Math.abs(xDiff) < 5 && Math.abs(yDiff) < 5) {
-			this.notifyAll(GestureController.ON_TAP);
-		}
-
 		this.notifyAll(GestureController.ON_TOUCH_END);
 	};
 }

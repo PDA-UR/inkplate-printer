@@ -73,7 +73,9 @@ function startSocketIO() {
 
 		socket.on("disconnect", () => {
 			const device = DeviceManager.unregister(socket.id);
-			QueueManager.dequeue(device.uuid);
+			if (device?.id) {
+				QueueManager.dequeue(device.uuid);
+			}
 		});
 	});
 }

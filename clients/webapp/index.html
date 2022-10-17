@@ -14,15 +14,22 @@
 	</head>
 	<body>
 		<div id="app">
-			<img id="page-image" />
+			<img id="page-image" class="shadow" />
 			<div id="hud-container" class="inactive">
-				<div id="device-index"></div>
 				<div id="page-nav-buttons">
-					<div id="previous-page-button"></div>
-					<div id="next-page-button"></div>
+					<div id="previous-page-button" class="button"></div>
+					<div id="next-page-button" class="button"></div>
 				</div>
-				<div id="request-page-chain-button" disabled>Request Document</div>
+				<div
+					id="request-page-chain-button"
+					class="button x-centered shadow"
+					disabled
+				>
+					Request Document
+				</div>
 			</div>
+			<div id="device-index" class="button xy-centered inactive shadow"></div>
+			<div id="connection-status" class="disconnected"></div>
 		</div>
 		<script type="module" src="/src/main.ts"></script>
 	</body>

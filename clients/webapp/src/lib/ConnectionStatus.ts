@@ -1,8 +1,8 @@
 enum ConnectionStatus {
-	DISCONNECTED,
-	REGISTERING,
-	QUEUEING,
-	CONNECTED,
+	DISCONNECTED = "disconnected",
+	REGISTERING = "registering",
+	QUEUEING = "queueing",
+	CONNECTED = "connected",
 }
 
 export default ConnectionStatus;

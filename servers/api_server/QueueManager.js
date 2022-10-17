@@ -92,9 +92,11 @@ class QueueManager {
 
 	static #clearQueue = () => {
 		this.#waitingDevices.clear();
-		fs.rm(this.QUEUE_FOLDER_PATH, { recursive: true }, (error) => {
-			if (error) console.log("Error removing queue folder", error);
-		});
+		if (fs.existsSync(QueueManager.QUEUE_FOLDER_PATH)) {
+			fs.rm(this.QUEUE_FOLDER_PATH, { recursive: true }, (error) => {
+				if (error) console.log("Error removing queue folder", error);
+			});
+		}
 	};
 
 	static #updateDeviceIndex = (socket, deviceIndex) => {
