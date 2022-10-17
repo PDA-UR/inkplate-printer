@@ -19,9 +19,9 @@ const route = {
 			bitmap = getBitmap(filePath);
 
 		if (bitmap) {
-			res.setHeader("Content-Disposition", "attachment; filename=unknown.bmp");
+			// send bmp as b64 string
 			res.setHeader("Content-Type", "image/bmp");
-			res.send(bitmap);
+			res.status(200).send(bitmap.toString("base64"));
 		} else {
 			res.setHeader("Content-Type", "image/bmp");
 			res.status(201);

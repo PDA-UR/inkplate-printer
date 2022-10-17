@@ -12,41 +12,41 @@ export default defineConfig({
 		sourcemap: process.env.SOURCE_MAP === "true",
 	},
 	plugins: [
-		VitePWA({
-			mode: "development",
-			base: "/",
-			includeAssets: ["favicon.svg"],
-			injectRegister,
-			selfDestroying,
-			registerType: "autoUpdate",
-			manifest: {
-				name: "PWA Router",
-				short_name: "PWA Router",
-				theme_color: "#ffffff",
-				icons: [
-					{
-						src: "pwa-192x192.png", // <== don't add slash, for testing
-						sizes: "192x192",
-						type: "image/png",
-					},
-					{
-						src: "/pwa-512x512.png", // <== don't remove slash, for testing
-						sizes: "512x512",
-						type: "image/png",
-					},
-					{
-						src: "pwa-512x512.png", // <== don't add slash, for testing
-						sizes: "512x512",
-						type: "image/png",
-						purpose: "any maskable",
-					},
-				],
-			},
-			devOptions: {
-				enabled: process.env.SW_DEV === "true",
-				/* when using generateSW the PWA plugin will switch to classic */
-				navigateFallback: "index.html",
-			},
-		}),
+		// VitePWA({
+		// 	mode: "development",
+		// 	base: "/",
+		// 	includeAssets: ["favicon.svg"],
+		// 	injectRegister,
+		// 	selfDestroying,
+		// 	registerType: "autoUpdate",
+		// 	manifest: {
+		// 		name: "PWA Router",
+		// 		short_name: "PWA Router",
+		// 		theme_color: "#ffffff",
+		// 		icons: [
+		// 			{
+		// 				src: "pwa-192x192.png", // <== don't add slash, for testing
+		// 				sizes: "192x192",
+		// 				type: "image/png",
+		// 			},
+		// 			{
+		// 				src: "/pwa-512x512.png", // <== don't remove slash, for testing
+		// 				sizes: "512x512",
+		// 				type: "image/png",
+		// 			},
+		// 			{
+		// 				src: "pwa-512x512.png", // <== don't add slash, for testing
+		// 				sizes: "512x512",
+		// 				type: "image/png",
+		// 				purpose: "any maskable",
+		// 			},
+		// 		],
+		// 	},
+		// 	devOptions: {
+		// 		enabled: process.env.SW_DEV === "true",
+		// 		/* when using generateSW the PWA plugin will switch to classic */
+		// 		navigateFallback: "index.html",
+		// 	},
+		// }),
 	],
 });

@@ -29,7 +29,8 @@ export default class GestureController extends Observable {
 		);
 		this.$element.addEventListener(
 			GestureController.ON_TOUCH_END,
-			({ touches }) => this.onTouchEnd(touches[0].clientX, touches[0].clientY)
+			({ changedTouches }) =>
+				this.onTouchEnd(changedTouches[0].clientX, changedTouches[0].clientY)
 		);
 
 		// mouse

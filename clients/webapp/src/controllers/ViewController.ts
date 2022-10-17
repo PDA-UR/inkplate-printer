@@ -47,9 +47,9 @@ export default class ViewController extends Observable {
 	// ~~~~~~~~~~~~ Public methods ~~~~~~~~~~~ //
 
 	public setPage = (pageModel: PageModel): void => {
-		console.log("set page", pageModel);
-		const url = URL.createObjectURL(pageModel.image);
-		this.$currentPageImage.src = url;
+		let b64Bmp = pageModel.image;
+		this.$currentPageImage.src = `data:image/bmp;base64,${b64Bmp}`;
+
 		this.enable(this.$nextPageButton);
 		this.enable(this.$previousPageButton);
 	};

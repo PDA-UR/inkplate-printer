@@ -1,13 +1,15 @@
+html,
 body {
+	height: 100%;
 	width: 100%;
-	height: 100vh;
-	overflow: hidden;
 	margin: 0;
+	overflow: hidden;
 }
 
 #app {
 	text-align: center;
 	position: relative;
+	display: flex;
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
@@ -48,7 +50,7 @@ body {
 	height: 5em;
 	background-size: 100% 100%;
 	background-repeat: no-repeat;
-	margin: 0 1em;
+	opacity: 0.8;
 }
 
 #previous-page-button {
@@ -62,7 +64,7 @@ body {
 }
 
 #request-page-chain-button {
-	position: absolute;
+	position: fixed;
 	bottom: 0;
 	width: 60%;
 	height: 10vh;
@@ -80,16 +82,16 @@ body {
 }
 
 #device-index {
-	width: 4em;
-	height: 4em;
+	width: 30vh;
+	height: 30vh;
 
 	background-color: rgba(0, 0, 0, 0.8);
-	border-radius: 0.3em;
+	border-radius: 10%;
 
 	text-align: center;
 	font-size: 5rem;
 	color: white;
-	line-height: 4em;
+	line-height: 30vh;
 }
 
 #device-index.inactive {
@@ -108,23 +110,12 @@ body {
 	border-radius: 50%;
 }
 
-#connection-status.connected {
-	background-color: green;
-}
-
-#connection-status.disconnected {
-	background-color: red;
-}
-
-#connection-status.connecting {
-	background-color: yellow;
-}
-
 /* image */
 
 #page-image {
 	/*make image fit 100% vertically*/
 	height: 100%;
+	width: 100%;
 	object-fit: contain;
 }
 
@@ -155,7 +146,7 @@ body {
 }
 
 .disabled {
-	opacity: 0.5;
+	opacity: 0.4;
 }
 
 .disabled:hover {

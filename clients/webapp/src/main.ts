@@ -93,6 +93,8 @@ function onApplicationStart() {
 						if (pageModel !== undefined) viewController.setPage(pageModel);
 						else throw new Error("pageModel is undefined");
 
+						viewController.setRegistering(-1);
+
 						await DataManager.getAllExceptCurrentPage();
 						console.log("all pages loaded");
 					} else {
