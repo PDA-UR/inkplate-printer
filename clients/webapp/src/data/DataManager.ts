@@ -83,11 +83,11 @@ export default class DataManager {
 			// try to download the page
 			try {
 				const uuid = await DataManager.getUUID();
-				const b64Image = await ApiClient.getPageImage(pageIndex, uuid!);
-				if (b64Image !== undefined) {
+				const blobImage = await ApiClient.getPageImage(pageIndex, uuid!);
+				if (blobImage !== undefined) {
 					const pageModel: PageModel = {
 						index: pageIndex,
-						image: b64Image,
+						image: blobImage,
 					};
 					await DataManager.savePage(pageModel);
 					return pageModel;

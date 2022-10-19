@@ -2,6 +2,7 @@ import { io } from "socket.io-client";
 import DataManager from "../data/DataManager";
 import { Observable } from "../lib/Observable";
 import ConnectionStatus from "../lib/ConnectionStatus";
+import DeviceModel, { getScreenInfo } from "../data/DeviceModel";
 
 export default class SocketController extends Observable {
 	public static ON_DISCONNECT = "disconnect";
@@ -32,13 +33,12 @@ export default class SocketController extends Observable {
 
 	public sendRegisterMessage(uuid: string): void {
 		this.connectionStatus = ConnectionStatus.REGISTERING;
-		this.socket.emit(SocketController.ON_REGISTER, {
-			uuid,
-			screenResolution: {
-				width: window.innerWidth,
-				height: window.innerHeight,
-			},
-		});
+		const device: DeviceModel = {
+			uuid: uuid,
+			screenInfo: getScreenInfo(),
+			isBrowser: true,
+		};
+		this.socket.emit(SocketController.ON_REGISTER, device);
 
 		this.notifyAll(SocketController.ON_REGISTER);
 	}

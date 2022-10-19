@@ -1,6 +1,6 @@
 *PPD-Adobe: "4.3"
 *%%%% PPD file for E-Paper Printer with CUPS.
-*%%%% Created by the CUPS PPD Compiler CUPS v2.4.2.
+*%%%% Created by the CUPS PPD Compiler CUPS v2.3.4.
 *FormatVersion: "4.3"
 *FileVersion: "1.0"
 *LanguageVersion: English
@@ -13,8 +13,8 @@
 *NickName: "Thomas Fischer PDA-UR E-Paper Printer, 1.0"
 *PSVersion: "(3010.000) 0"
 *LanguageLevel: "3"
-*ColorDevice: False
-*DefaultColorSpace: Gray
+*ColorDevice: True
+*DefaultColorSpace: RGB
 *FileSystem: False
 *Throughput: "1"
 *LandscapeOrientation: Plus90
@@ -41,8 +41,8 @@
 *PaperDimension 135x205/135x205: "382.677185058594 581.102355957031"
 *OpenUI *ColorModel/Color Mode: PickOne
 *OrderDependency: 10 AnySetup *ColorModel
-*DefaultColorModel: Gray
-*ColorModel Gray/Grayscale: "<</cupsColorSpace 0/cupsColorOrder 0/cupsCompression 0>>setpagedevice"
+*DefaultColorModel: RGB
+*ColorModel RGB/Color: "<</cupsColorSpace 1/cupsColorOrder 0/cupsCompression 0>>setpagedevice"
 *CloseUI: *ColorModel
 *OpenUI *Resolution/Resolution: PickOne
 *OrderDependency: 10 AnySetup *Resolution
@@ -85,4 +85,4 @@
 *Font Times-Roman: Standard "(1.05)" Standard ROM
 *Font ZapfChancery-MediumItalic: Standard "(1.05)" Standard ROM
 *Font ZapfDingbats: Special "(001.005)" Special ROM
-*% End of Inkplate10.ppd, 03950 bytes.
+*% End of Inkplate10.ppd, 03942 bytes.

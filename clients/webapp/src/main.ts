@@ -19,19 +19,20 @@ function onApplicationStart() {
 
 	socketConnection.on(SocketController.ON_REGISTER, () => {
 		console.log("registering");
-		viewController.setConnectionStatus(socketConnection.getConnectionStatus());
+		updateConnectionStatus();
 	});
 
 	socketConnection.on(SocketController.ON_REGISTERED, async () => {
 		console.log("connected");
-		viewController.setConnectionStatus(socketConnection.getConnectionStatus());
+		updateConnectionStatus();
 	});
 
 	socketConnection.on(SocketController.ON_DISCONNECT, () => {
 		console.log("disconnected");
 		if (socketConnection.getConnectionStatus() === ConnectionStatus.QUEUEING) {
 			State.toggleDisplayMode(false);
-			viewController.setRegistering(-1);
+			viewController.setDeviceIndex(-1);
+			updateConnectionStatus();
 		}
 	});
 
@@ -62,7 +63,7 @@ function onApplicationStart() {
 			if (deviceIndex !== undefined) {
 				try {
 					await DataManager.saveDeviceIndex(deviceIndex);
-					viewController.setRegistering(deviceIndex);
+					viewController.setDeviceIndex(deviceIndex);
 				} catch (e) {
 					console.error(e);
 				}
@@ -93,9 +94,11 @@ function onApplicationStart() {
 						if (pageModel !== undefined) viewController.setPage(pageModel);
 						else throw new Error("pageModel is undefined");
 
-						viewController.setRegistering(-1);
+						viewController.setDeviceIndex(-1);
 
 						await DataManager.getAllExceptCurrentPage();
+
+						viewController.setConnectionStatus(ConnectionStatus.CONNECTED);
 						console.log("all pages loaded");
 					} else {
 						throw new Error("device index is undefined");
@@ -160,6 +163,10 @@ function onApplicationStart() {
 				onNavigatePage(doGoNext);
 			}
 		}
+	};
+
+	const updateConnectionStatus = () => {
+		viewController.setConnectionStatus(socketConnection.getConnectionStatus());
 	};
 }
 

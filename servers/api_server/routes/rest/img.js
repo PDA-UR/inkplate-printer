@@ -19,9 +19,13 @@ const route = {
 			bitmap = getBitmap(filePath);
 
 		if (bitmap) {
-			// send bmp as b64 string
+			// send bmp as blob
 			res.setHeader("Content-Type", "image/bmp");
-			res.status(200).send(bitmap.toString("base64"));
+			res.setHeader(
+				"Content-Disposition",
+				"attachment; filename=" + pageNum + ".bmp"
+			);
+			res.send(bitmap);
 		} else {
 			res.setHeader("Content-Type", "image/bmp");
 			res.status(201);

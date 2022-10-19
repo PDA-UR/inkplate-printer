@@ -1,6 +1,7 @@
 const fs = require("fs");
 const os = require("os");
 const chokidar = require("chokidar");
+const spawn = require("child_process").spawn;
 
 class QueueManager {
 	static QUEUE_FOLDER_PATH = require("path").join(
@@ -110,24 +111,22 @@ class QueueManager {
 			imgPath = serverHomePath + "/img/",
 			outDir = imgPath + device.uuid + "/";
 
-		// create out dir if it doesn't exist
-		if (!fs.existsSync(outDir)) {
-			fs.mkdirSync(outDir, { recursive: true });
+		// delete out dir if it already exists (e.g. previous print job)
+		if (fs.existsSync(outDir)) {
+			fs.rmSync(outDir, { recursive: true }, (error) => {
+				if (error) console.log("Error removing out dir", error);
+			});
 		}
 
+		// create out dir
+		fs.mkdirSync(outDir, { recursive: true });
+
 		return new Promise((resolve, reject) => {
-			const spawn = require("child_process").spawn;
-			const process = spawn("gs", [
-				"-sDEVICE=bmpgray",
-				"-dNOPAUSE",
-				"-dBATCH",
-				"-dSAFER",
-				"-r145",
-				"-g825x1200",
-				"-dPDFFitPage",
-				"-sOutputFile=" + outDir + "%d.bmp",
+			const process = QueueManager.#spawnConvertProcess(
 				filepath,
-			]);
+				device,
+				outDir
+			);
 
 			process.stdout.on("data", (data) => {
 				console.log("gs: " + data);
@@ -141,6 +140,35 @@ class QueueManager {
 			process.on("error", (error) => reject(error));
 		});
 	}
+
+	static #spawnConvertProcess = (filepath, device, outDir) =>
+		spawn("gs", [
+			`-sDEVICE=${QueueManager.#getPrinterType(
+				device.isBrowser,
+				device.screenInfo.colorDepth
+			)}`,
+			"-dNOPAUSE",
+			"-dBATCH",
+			"-dSAFER",
+			`-r${device.screenInfo.dpi}`, // inkplate = 145
+			// using the device screen res will cut off parts off the image, disabled for now
+			//`-g${device.screenInfo.resolution.width}x${device.screenInfo.resolution.height}`,
+			// "-g825x1200", // a4
+			"-dPDFFitPage",
+			"-sOutputFile=" + outDir + "%d.bmp",
+			filepath,
+		]);
+
+	static #getPrinterType = (isBrowser, colorDepth) => {
+		// for reference of available device types, see
+		// http://ccp14.cryst.bbk.ac.uk/ccp/web-mirrors/ghostscript/~ghost/doc/AFPL/devices.htm
+		if (isBrowser) {
+			if (colorDepth > 8) return "bmp16m"; // 24 bit
+			else if (colorDepth > 4) return "bmp256"; // 8 bit
+			else if (colorDepth === 4) return "bmp16"; // 4 bit
+		}
+		return "bmpgray"; // grayscale
+	};
 
 	static #onFileAdded = (filePath) => {
 		console.log("queue changed", filePath);

@@ -1,5 +1,5 @@
 export default class ApiClient {
-	static async getPageImage(pageIndex: number, uuid: string): Promise<string> {
+	static async getPageImage(pageIndex: number, uuid: string): Promise<Blob> {
 		const url = "/api/img?";
 		const params = new URLSearchParams({
 			client: uuid,
@@ -14,7 +14,6 @@ export default class ApiClient {
 			return Promise.reject("Failed to get page image");
 		}
 
-		const b64Image = await response.text();
-		return b64Image;
+		return response.blob();
 	}
 }

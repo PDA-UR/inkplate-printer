@@ -47,8 +47,11 @@ export default class ViewController extends Observable {
 	// ~~~~~~~~~~~~ Public methods ~~~~~~~~~~~ //
 
 	public setPage = (pageModel: PageModel): void => {
-		let b64Bmp = pageModel.image;
-		this.$currentPageImage.src = `data:image/bmp;base64,${b64Bmp}`;
+		let bmpBlob = pageModel.image;
+
+		if (bmpBlob !== undefined) {
+			this.$currentPageImage.src = URL.createObjectURL(bmpBlob);
+		}
 
 		this.enable(this.$nextPageButton);
 		this.enable(this.$previousPageButton);
@@ -62,7 +65,7 @@ export default class ViewController extends Observable {
 		this.disable(this.$previousPageButton);
 	};
 
-	public setRegistering = (deviceIndex: number): void => {
+	public setDeviceIndex = (deviceIndex: number): void => {
 		if (deviceIndex === -1) {
 			this.toggleDeviceIndex(false);
 		} else {

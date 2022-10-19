@@ -3,7 +3,7 @@
 const DeviceManager = require("../../DeviceManager");
 
 const on = (socket, device) => {
-	if (device.uuid && device.screenResolution) {
+	if (device.uuid && device.screenInfo) {
 		DeviceManager.register(socket.id, device);
 		socket.emit("registered", true);
 	} else {
