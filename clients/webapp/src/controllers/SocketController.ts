@@ -3,6 +3,7 @@ import DataManager from "../data/DataManager";
 import { Observable } from "../lib/Observable";
 import ConnectionStatus from "../lib/ConnectionStatus";
 import DeviceModel, { getScreenInfo } from "../data/DeviceModel";
+import PageChainInfoModel from "../data/PageChainInfoModel";
 
 export default class SocketController extends Observable {
 	public static ON_DISCONNECT = "disconnect";
@@ -31,12 +32,13 @@ export default class SocketController extends Observable {
 
 	// registering
 
-	public sendRegisterMessage(uuid: string): void {
+	public sendRegisterMessage(uuid: string, pageChainId?: number): void {
 		this.connectionStatus = ConnectionStatus.REGISTERING;
 		const device: DeviceModel = {
 			uuid: uuid,
 			screenInfo: getScreenInfo(),
 			isBrowser: true,
+			pageChainId: pageChainId || -1,
 		};
 		this.socket.emit(SocketController.ON_REGISTER, device);
 
@@ -57,11 +59,24 @@ export default class SocketController extends Observable {
 		this.socket.emit("dequeue");
 	}
 
+	// pairing
+
+	public sendPairMessage(doPrepend: boolean): void {
+		this.socket.emit("pair", doPrepend);
+	}
+
+	public sendUnpairMessage(): void {
+		this.socket.emit("unpair");
+	}
+
+	// private
+
 	private registerEvents = (): void => {
-		this.socket.on(SocketController.ON_CONNECT, () => {
-			DataManager.getUUID().then((uuid) => {
-				this.sendRegisterMessage(uuid!);
-			});
+		this.socket.on(SocketController.ON_CONNECT, async () => {
+			const uuid: string = (await DataManager.getUUID()) as string;
+			const pageChainId = (await DataManager.getPageChainInfo())?.id;
+
+			this.sendRegisterMessage(uuid, pageChainId);
 		});
 
 		this.socket.on(SocketController.ON_REGISTERED, this.onRegistered);
@@ -88,8 +103,10 @@ export default class SocketController extends Observable {
 	};
 
 	// pages ready
-	private onPagesReady = (numPages: number | undefined): void => {
-		this.notifyAll(SocketController.ON_PAGES_READY, numPages);
+	private onPagesReady = (
+		pageChainInfoModel: PageChainInfoModel | undefined
+	): void => {
+		this.notifyAll(SocketController.ON_PAGES_READY, pageChainInfoModel);
 	};
 
 	// page show

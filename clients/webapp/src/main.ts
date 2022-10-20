@@ -1,6 +1,7 @@
 import SocketController from "./controllers/SocketController";
 import ViewController from "./controllers/ViewController";
 import DataManager from "./data/DataManager";
+import PageChainInfoModel from "./data/PageChainInfoModel";
 import { AppEvent } from "./lib/AppEvent";
 import State, { DisplayMode } from "./lib/AppState";
 import ConnectionStatus from "./lib/ConnectionStatus";
@@ -73,10 +74,11 @@ function onApplicationStart() {
 
 	socketConnection.on(
 		SocketController.ON_PAGES_READY,
-		async (event: AppEvent<number>) => {
+		async (event: AppEvent<PageChainInfoModel | undefined>) => {
 			console.log("pages ready main.ts", event);
-			const pageCount = event.data;
-			if (pageCount !== undefined) {
+			const pageChainInfoModel = event.data;
+			console.log("pageChainInfoModel1", pageChainInfoModel);
+			if (pageChainInfoModel !== undefined && pageChainInfoModel.id !== -1) {
 				try {
 					const deviceIndex = await DataManager.getDeviceIndex();
 					if (deviceIndex !== undefined) {
@@ -84,12 +86,11 @@ function onApplicationStart() {
 
 						console.log("device index", deviceIndex);
 						await DataManager.saveCurrentPageIndex(deviceIndex);
-						await DataManager.savePageChainInfo({
-							pageCount,
-						});
+						await DataManager.savePageChainInfo(pageChainInfoModel);
 						const pageModel = await DataManager.getCurrentPage();
 
-						viewController.setPageCount(pageCount);
+						console.log("pageChainInfoModel2", pageChainInfoModel);
+						viewController.setPageCount(pageChainInfoModel.pageCount);
 
 						if (pageModel !== undefined) viewController.setPage(pageModel);
 						else throw new Error("pageModel is undefined");
@@ -141,6 +142,10 @@ function onApplicationStart() {
 		onNavigatePage(false)
 	);
 
+	viewController.on(ViewController.ON_PAIR_LEFT, () => onDoPair(false));
+	viewController.on(ViewController.ON_PAIR_RIGHT, () => onDoPair(true));
+	viewController.on(ViewController.ON_UNPAIR, () => onDoUnpair());
+
 	const onNavigatePage = async (doGoNext: boolean): Promise<void> => {
 		if (socketConnection.getConnectionStatus() !== ConnectionStatus.QUEUEING) {
 			if (State.mode === DisplayMode.DISPLAYING) {
@@ -170,6 +175,14 @@ function onApplicationStart() {
 	const updateConnectionStatus = () => {
 		viewController.setConnectionStatus(socketConnection.getConnectionStatus());
 	};
+
+	const onDoPair = async (doPrepend: boolean) => {
+		socketConnection.sendPairMessage(doPrepend);
+	};
+
+	const onDoUnpair = async () => {
+		socketConnection.sendUnpairMessage();
+	};
 }
 
 async function initState(
@@ -180,7 +193,8 @@ async function initState(
 	if (hasPageChain) {
 		State.mode = DisplayMode.DISPLAYING;
 		const pageChain = await DataManager.getPageChainInfo();
-		if (pageChain !== undefined) {
+		if (pageChain !== undefined && pageChain?.id !== -1) {
+			console.log("pageChain", pageChain);
 			viewController.setPageCount(pageChain.pageCount);
 		}
 

@@ -2,6 +2,7 @@ import PageModel from "../data/PageModel";
 import { Observable } from "../lib/Observable";
 import ConnectionStatus from "../lib/ConnectionStatus";
 import GestureController from "./GestureController";
+import AccelerometerController from "./AccelerometerController";
 
 export default class ViewController extends Observable {
 	public static ON_NEXT_PAGE = "nextPageClicked";
@@ -12,6 +13,11 @@ export default class ViewController extends Observable {
 	private static NEXT_PAGE_KEYS = ["ArrowRight", "l", "L"];
 	private static PREVIOUS_PAGE_KEYS = ["ArrowLeft", "h", "H"];
 	private static ENQUEUE_KEYS = ["Space", "j", "J"];
+
+	// acellerometer
+	public static ON_PAIR_LEFT = "pairLeft";
+	public static ON_PAIR_RIGHT = "pairRight";
+	public static ON_UNPAIR = "unpair";
 
 	private readonly $hudContainer = document.getElementById(
 		"hud-container"
@@ -45,6 +51,8 @@ export default class ViewController extends Observable {
 		this.$hudContainer
 	);
 
+	private readonly accelerometerController = new AccelerometerController();
+
 	constructor() {
 		super();
 		this.registerEvents();
@@ -65,11 +73,11 @@ export default class ViewController extends Observable {
 	};
 
 	public setPageIndex = (pageIndex: number): void => {
-		this.$pageNumber.innerHTML = pageIndex.toString();
+		this.$pageNumber.innerHTML = pageIndex?.toString();
 	};
 
 	public setPageCount = (pageCount: number): void => {
-		this.$pageCount.innerHTML = pageCount.toString();
+		this.$pageCount.innerHTML = pageCount?.toString();
 	};
 
 	public setBlank = () => {
@@ -172,6 +180,20 @@ export default class ViewController extends Observable {
 			console.log("HUD clicked");
 			this.toggleHud();
 		});
+
+		// Accelerometer
+
+		this.accelerometerController.on(AccelerometerController.ON_PAIR_LEFT, () =>
+			this.notifyAll(ViewController.ON_PAIR_LEFT)
+		);
+
+		this.accelerometerController.on(AccelerometerController.ON_PAIR_RIGHT, () =>
+			this.notifyAll(ViewController.ON_PAIR_RIGHT)
+		);
+
+		this.accelerometerController.on(AccelerometerController.ON_UNPAIR, () =>
+			this.notifyAll(ViewController.ON_UNPAIR)
+		);
 	};
 
 	private toggleHud = (on?: boolean) => {

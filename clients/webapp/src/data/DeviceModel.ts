@@ -2,6 +2,7 @@ export default interface DeviceModel {
 	uuid: string;
 	screenInfo: ScreenInfo;
 	isBrowser: boolean;
+	pageChainId: number;
 }
 
 export interface ScreenInfo {

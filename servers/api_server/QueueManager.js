@@ -1,6 +1,7 @@
 const fs = require("fs");
 const os = require("os");
 const chokidar = require("chokidar");
+const DeviceManager = require("./DeviceManager");
 const spawn = require("child_process").spawn;
 
 class QueueManager {
@@ -71,17 +72,22 @@ class QueueManager {
 		this.#watcher = null;
 
 		const ps2bmpJobs = [];
+		const pageChainId = new Date().getTime();
 
 		for (const device of QueueManager.#waitingDevices.values()) {
 			ps2bmpJobs.push(
 				this.#ps2bpm(filepath, device.device)
-					.then((numPages) => {
-						console.log("Sending pages ready message", numPages);
-						device.socket.emit("pagesReady", numPages);
+					.then((pageCount) => {
+						console.log("Sending pages ready message", pageCount, device);
+						device.socket.emit("pagesReady", {
+							pageCount,
+							id: pageChainId,
+						});
+						DeviceManager.updatePageChainId(device.socket.id, pageChainId);
 					})
 					.catch((error) => {
 						console.log("Error converting ps to bmp", error, device);
-						device.socket.emit("pagesReady"); // send event without num pages
+						device.socket.emit("pagesReady", { pageChainId: -1 }); // send event without num pages
 					})
 			);
 		}

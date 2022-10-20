@@ -4,7 +4,7 @@ const QueueManager = require("../../QueueManager");
 const DeviceManager = require("../../DeviceManager");
 
 const on = (socket) => {
-	const device = DeviceManager.getDevice(socket.id);
+	const device = DeviceManager.getDeviceBySocketId(socket.id);
 	if (device) {
 		console.log("enqueueing ", device);
 		QueueManager.enqueue(socket, device);

@@ -13,8 +13,15 @@ class DeviceManager {
 		return device;
 	};
 
-	static getDevice = (socketId) => {
+	static getDeviceBySocketId = (socketId) => {
 		return this.devices.get(socketId);
+	};
+
+	static getDeviceByUuid = (uuid) => {
+		for (const device of this.devices.values()) {
+			if (device.uuid === uuid) return device;
+		}
+		return null;
 	};
 
 	static getAllDevices = () => {
@@ -24,6 +31,13 @@ class DeviceManager {
 			devices[key] = value;
 		}
 		return devices;
+	};
+
+	static updatePageChainId = (socketId, pageChainId) => {
+		const device = this.devices.get(socketId);
+		if (device) {
+			device.pageChainId = pageChainId;
+		}
 	};
 }
 
