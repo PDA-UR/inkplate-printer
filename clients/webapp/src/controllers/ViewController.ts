@@ -60,7 +60,10 @@ export default class ViewController extends Observable {
 	public setBlank = () => {
 		console.log("set blank");
 		this.toggleDeviceIndex(false);
-		this.$currentPageImage.src = "";
+		// super small blank image
+		// from:https://stackoverflow.com/questions/19126185/setting-an-image-src-to-empty
+		this.$currentPageImage.src =
+			"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 		this.disable(this.$nextPageButton);
 		this.disable(this.$previousPageButton);
 	};

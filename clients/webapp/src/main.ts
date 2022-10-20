@@ -1,8 +1,6 @@
 import SocketController from "./controllers/SocketController";
 import ViewController from "./controllers/ViewController";
 import DataManager from "./data/DataManager";
-import PageChainInfoModel from "./data/PageChainInfoModel";
-import PageModel from "./data/PageModel";
 import { AppEvent } from "./lib/AppEvent";
 import State, { DisplayMode } from "./lib/AppState";
 import ConnectionStatus from "./lib/ConnectionStatus";
@@ -93,6 +91,8 @@ function onApplicationStart() {
 
 						if (pageModel !== undefined) viewController.setPage(pageModel);
 						else throw new Error("pageModel is undefined");
+
+						State.mode = DisplayMode.DISPLAYING;
 
 						viewController.setDeviceIndex(-1);
 
