@@ -41,11 +41,22 @@ function onApplicationStart() {
 			const pageIndex = event.data;
 			if (pageIndex !== undefined) {
 				try {
-					await DataManager.saveCurrentPageIndex(pageIndex);
-					const pageModel = await DataManager.getPage(pageIndex);
+					const pageCount = (await DataManager.getPageChainInfo())?.pageCount;
+					if (
+						pageCount !== undefined &&
+						pageIndex > 0 &&
+						pageIndex <= pageCount
+					) {
+						await DataManager.saveCurrentPageIndex(pageIndex);
+						const pageModel = await DataManager.getPage(pageIndex);
 
-					if (pageModel !== undefined) viewController.setPage(pageModel);
-					else console.error("pageModel is undefined");
+						if (pageModel !== undefined) viewController.setPage(pageModel);
+						else console.error("pageModel is undefined");
+					} else {
+						console.error(
+							"pageCount is undefined or pageIndex is out of range"
+						);
+					}
 				} catch (e) {
 					console.error(e);
 				}
@@ -115,6 +126,12 @@ function onApplicationStart() {
 		}
 	);
 
+	socketConnection.on(
+		SocketController.ON_UPDATE_PAIRING_INDEX,
+		(event: AppEvent<number>) =>
+			viewController.setPairingIndex(event.data as number)
+	);
+
 	// ~~~~~~~~~~~~~ View events ~~~~~~~~~~~~~ //
 
 	viewController.on(ViewController.ON_ENQUEUE, async () => {
@@ -146,14 +163,22 @@ function onApplicationStart() {
 	viewController.on(ViewController.ON_PAIR_RIGHT, () => onDoPair(true));
 	viewController.on(ViewController.ON_UNPAIR, () => onDoUnpair());
 
-	const onNavigatePage = async (doGoNext: boolean): Promise<void> => {
+	const onNavigatePage = async (
+		doGoNext: boolean,
+		triggeredByPairing = false
+	): Promise<void> => {
 		if (socketConnection.getConnectionStatus() !== ConnectionStatus.QUEUEING) {
 			if (State.mode === DisplayMode.DISPLAYING) {
 				try {
 					const newPageIndex = await DataManager.stepCurrentPageIndex(doGoNext);
 					if (newPageIndex !== undefined) {
+						console.log("newPageIndex", newPageIndex);
 						const pageModel = await DataManager.getPage(newPageIndex);
-						if (pageModel) viewController.setPage(pageModel);
+						if (pageModel !== undefined) {
+							viewController.setPage(pageModel);
+							if (!triggeredByPairing)
+								socketConnection.sendUpdatePageIndexMessage(newPageIndex);
+						}
 					} else {
 						console.log("limit reached");
 					}

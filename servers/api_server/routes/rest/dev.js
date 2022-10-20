@@ -1,6 +1,7 @@
 // Dev dashboard for testing and debugging
 
 const DeviceManager = require("../../DeviceManager");
+const PairingManager = require("../../PairingManager");
 const QueueManager = require("../../QueueManager");
 
 // Really ugly, but it works
@@ -35,6 +36,9 @@ const route = {
                 <h2>Print Queue</h2>
                 ${buildQueueStatus()}
                 ${buildPrintQueueDevices()}
+
+				<h2>Paired Devices</h2>
+				${buildPairedDevices()}
             </body>
         </html>
         `;
@@ -146,6 +150,30 @@ function buildPrintQueueDevices() {
         `;
 	}
 	return "";
+}
+
+// parings
+
+function buildPairedDevices() {
+	const parings = PairingManager.getPairings();
+	const headerRow = "<tr><th>Page Chain ID</th><th>Device IDs</th></tr>";
+	const rows = [];
+	// iterate over map keys
+	for (const key of parings.keys()) {
+		const pairing = parings.get(key);
+		let str = `<tr><td>${key}</td><td>`;
+		console.log(pairing.getDeviceIds());
+		for (const deviceId of pairing.getDeviceIds()) {
+			str += `${deviceId}; `;
+		}
+		str += "</td></tr>";
+		rows.push(str);
+	}
+	return `
+		<table>
+			${rows.join("")}
+		</table>
+	`;
 }
 
 module.exports = route;

@@ -39,6 +39,14 @@ class DeviceManager {
 			device.pageChainId = pageChainId;
 		}
 	};
+
+	static getSocketByDeviceId = (deviceId) => {
+		const device = this.getDeviceByUuid(deviceId);
+		if (device !== undefined) {
+			return device.socket;
+		}
+		return undefined;
+	};
 }
 
 module.exports = DeviceManager;

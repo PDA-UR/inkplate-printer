@@ -16,6 +16,8 @@ export default class SocketController extends Observable {
 	public static ON_SHOW_PAGE = "showPage";
 	public static ON_PAGES_READY = "pagesReady";
 
+	public static ON_UPDATE_PAIRING_INDEX = "updatePairingIndex";
+
 	private readonly socket = io();
 	private connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED;
 
@@ -69,6 +71,12 @@ export default class SocketController extends Observable {
 		this.socket.emit("unpair");
 	}
 
+	// paging, pairing
+
+	public sendUpdatePageIndexMessage(pageIndex: number): void {
+		this.socket.emit("updatePageIndex", pageIndex);
+	}
+
 	// private
 
 	private registerEvents = (): void => {
@@ -89,6 +97,10 @@ export default class SocketController extends Observable {
 		this.socket.on(
 			SocketController.ON_UPDATE_DEVICE_INDEX,
 			this.onUpdateDeviceIndex
+		);
+		this.socket.on(
+			SocketController.ON_UPDATE_PAIRING_INDEX,
+			this.onUpdatePairingIndex
 		);
 	};
 
@@ -117,5 +129,10 @@ export default class SocketController extends Observable {
 	// device index
 	private onUpdateDeviceIndex = (deviceIndex: number): void => {
 		this.notifyAll(SocketController.ON_UPDATE_DEVICE_INDEX, deviceIndex);
+	};
+
+	// pairing index update
+	private onUpdatePairingIndex = (pairingIndex: number): void => {
+		this.notifyAll(SocketController.ON_UPDATE_PAIRING_INDEX, pairingIndex);
 	};
 }

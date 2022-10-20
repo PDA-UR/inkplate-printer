@@ -11,6 +11,7 @@ const { Server } = require("socket.io");
 const io = new Server(server);
 const DeviceManager = require("./DeviceManager");
 const QueueManager = require("./QueueManager");
+const PairingManager = require("./PairingManager");
 
 const socketRouteHandlers = [],
 	restRouteHandlers = [];
@@ -75,6 +76,7 @@ function startSocketIO() {
 			const device = DeviceManager.unregister(socket.id);
 			if (device?.id) {
 				QueueManager.dequeue(device.uuid);
+				PairingManager.unpair(device.uuid);
 			}
 		});
 	});

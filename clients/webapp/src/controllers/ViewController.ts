@@ -119,6 +119,14 @@ export default class ViewController extends Observable {
 		}
 	};
 
+	public setPairingIndex = (pairingIndex: number): void => {
+		if (pairingIndex === -1) {
+			console.log("unpairing");
+		} else {
+			console.log("pairing at index: " + pairingIndex);
+		}
+	};
+
 	// ~~~~~~~~~~~~ Event handling ~~~~~~~~~~~ //
 
 	private registerEvents = (): void => {
