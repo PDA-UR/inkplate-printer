@@ -209,7 +209,7 @@ function onApplicationStart() {
 			onDoUnpair();
 			console.log("unpair");
 		} else {
-			onDoPair(false);
+			onDoPair(true);
 			console.log("pair");
 		}
 	});
