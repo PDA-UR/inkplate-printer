@@ -81,6 +81,24 @@ body {
 	color: white;
 }
 
+#pair-menu-button {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: 10vh;
+	height: 10vh;
+
+	padding: 0.1em;
+
+	background-color: rgba(0, 0, 0, 0.8);
+
+	border-top-right-radius: 0.2em;
+
+	font-size: 3.5vw;
+	line-height: 10vh;
+	color: white;
+}
+
 #device-index {
 	width: 30vh;
 	height: 30vh;

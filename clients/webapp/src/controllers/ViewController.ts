@@ -15,10 +15,11 @@ export default class ViewController extends Observable {
 	private static PREVIOUS_PAGE_KEYS = ["ArrowLeft", "h", "H"];
 	private static ENQUEUE_KEYS = ["Space", "j", "J"];
 
-	// acellerometer
+	// pairing
 	public static ON_PAIR_LEFT = "pairLeft";
 	public static ON_PAIR_RIGHT = "pairRight";
 	public static ON_UNPAIR = "unpair";
+	public static ON_PAIR_BUTTON_CLICKED = "pairButtonClicked";
 
 	private readonly $hudContainer = document.getElementById(
 		"hud-container"
@@ -59,6 +60,9 @@ export default class ViewController extends Observable {
 	private readonly $pairingInfoCount = document.getElementById(
 		"pairing-info-count"
 	) as HTMLSpanElement;
+	private readonly $pairMenuButton = document.getElementById(
+		"pair-menu-button"
+	) as HTMLButtonElement;
 
 	private readonly gestureController = new GestureController(
 		this.$hudContainer
@@ -115,6 +119,8 @@ export default class ViewController extends Observable {
 
 	public setConnectionStatus = (connectionStatus: ConnectionStatus): void => {
 		this.$requestPageChainButton.disabled =
+			connectionStatus !== ConnectionStatus.CONNECTED;
+		this.$pairMenuButton.disabled =
 			connectionStatus !== ConnectionStatus.CONNECTED;
 		this.$connectionStatus.classList.remove("blink");
 
@@ -175,6 +181,11 @@ export default class ViewController extends Observable {
 		this.$deviceIndexInfo.addEventListener("click", (e) => {
 			this.consume(e);
 			this.notifyAll(ViewController.ON_ENQUEUE);
+		});
+
+		this.$pairMenuButton.addEventListener("click", (e) => {
+			this.consume(e);
+			this.notifyAll(ViewController.ON_PAIR_BUTTON_CLICKED);
 		});
 
 		document.addEventListener("keydown", (event) => {

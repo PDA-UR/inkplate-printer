@@ -129,8 +129,14 @@ function onApplicationStart() {
 
 	socketConnection.on(
 		SocketController.ON_UPDATE_PAIRING_INDEX,
-		(event: AppEvent<DevicePairingUpdateModel>) =>
-			viewController.setPairingIndex(event.data as DevicePairingUpdateModel)
+		(event: AppEvent<DevicePairingUpdateModel>) => {
+			const devicePairingUpdateModel = event.data!;
+			State.mode =
+				devicePairingUpdateModel.deviceIndex >= 0
+					? DisplayMode.PAIRED
+					: DisplayMode.DISPLAYING;
+			viewController.setPairingIndex(devicePairingUpdateModel);
+		}
 	);
 
 	// ~~~~~~~~~~~~~ View events ~~~~~~~~~~~~~ //
@@ -169,7 +175,7 @@ function onApplicationStart() {
 		triggeredByPairing = false
 	): Promise<void> => {
 		if (socketConnection.getConnectionStatus() !== ConnectionStatus.QUEUEING) {
-			if (State.mode === DisplayMode.DISPLAYING) {
+			if (State.mode !== DisplayMode.BLANK) {
 				try {
 					const newPageIndex = await DataManager.stepCurrentPageIndex(doGoNext);
 					if (newPageIndex !== undefined) {
@@ -197,6 +203,16 @@ function onApplicationStart() {
 			}
 		}
 	};
+
+	viewController.on(ViewController.ON_PAIR_BUTTON_CLICKED, () => {
+		if (State.mode === DisplayMode.PAIRED) {
+			onDoUnpair();
+			console.log("unpair");
+		} else {
+			onDoPair(false);
+			console.log("pair");
+		}
+	});
 
 	const updateConnectionStatus = () => {
 		viewController.setConnectionStatus(socketConnection.getConnectionStatus());

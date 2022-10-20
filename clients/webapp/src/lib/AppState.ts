@@ -1,6 +1,7 @@
 export enum DisplayMode {
 	BLANK,
 	DISPLAYING,
+	PAIRED,
 }
 
 class AppState {
