@@ -132,7 +132,14 @@ export default class SocketController extends Observable {
 	};
 
 	// pairing index update
-	private onUpdatePairingIndex = (pairingIndex: number): void => {
-		this.notifyAll(SocketController.ON_UPDATE_PAIRING_INDEX, pairingIndex);
+	private onUpdatePairingIndex = (
+		deviceIndex: number,
+		numDevices?: number
+	): void => {
+		console.log("onUpdatePairingIndex", deviceIndex, numDevices);
+		this.notifyAll(SocketController.ON_UPDATE_PAIRING_INDEX, {
+			deviceIndex,
+			numDevices: numDevices || 0,
+		});
 	};
 }

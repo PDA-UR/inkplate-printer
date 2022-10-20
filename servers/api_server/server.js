@@ -74,9 +74,10 @@ function startSocketIO() {
 
 		socket.on("disconnect", () => {
 			const device = DeviceManager.unregister(socket.id);
-			if (device?.id) {
+			console.log("Device disconnected: " + device.uuid);
+			if (device?.uuid) {
 				QueueManager.dequeue(device.uuid);
-				PairingManager.unpair(device.uuid);
+				PairingManager.unpair(device.pageChainId, device.uuid);
 			}
 		});
 	});

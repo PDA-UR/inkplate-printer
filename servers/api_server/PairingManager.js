@@ -79,8 +79,8 @@ class DevicePair {
 
 	#updatePairingIndex = (device, index) => {
 		if (device.socket) {
-			console.log("Updating device pairing index", device.uuid, index);
-			device.socket.emit("updatePairingIndex", index);
+			const numDevices = this.#deviceIds.length;
+			device.socket.emit("updatePairingIndex", index, numDevices);
 		}
 	};
 }
@@ -109,6 +109,7 @@ class PairingManager {
 	static unpair(pageChainId, deviceId) {
 		const pairing = this.#pairings.get(pageChainId);
 		if (pairing) {
+			console.log("unpairing", deviceId);
 			const hasPairingsLeft = pairing.remove(deviceId);
 			if (!hasPairingsLeft) {
 				this.#pairings.delete(pageChainId);

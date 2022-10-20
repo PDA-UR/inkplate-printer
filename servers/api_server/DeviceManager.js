@@ -3,7 +3,7 @@ class DeviceManager {
 	static devices = new Map();
 
 	static register = (socketId, device) => {
-		console.log("Registering device", device);
+		console.log("Registering device", device.uuid);
 		this.devices.set(socketId, device);
 	};
 

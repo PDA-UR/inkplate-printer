@@ -1,6 +1,7 @@
 import SocketController from "./controllers/SocketController";
 import ViewController from "./controllers/ViewController";
 import DataManager from "./data/DataManager";
+import DevicePairingUpdateModel from "./data/DevicePairingUpdateModel";
 import PageChainInfoModel from "./data/PageChainInfoModel";
 import { AppEvent } from "./lib/AppEvent";
 import State, { DisplayMode } from "./lib/AppState";
@@ -128,8 +129,8 @@ function onApplicationStart() {
 
 	socketConnection.on(
 		SocketController.ON_UPDATE_PAIRING_INDEX,
-		(event: AppEvent<number>) =>
-			viewController.setPairingIndex(event.data as number)
+		(event: AppEvent<DevicePairingUpdateModel>) =>
+			viewController.setPairingIndex(event.data as DevicePairingUpdateModel)
 	);
 
 	// ~~~~~~~~~~~~~ View events ~~~~~~~~~~~~~ //

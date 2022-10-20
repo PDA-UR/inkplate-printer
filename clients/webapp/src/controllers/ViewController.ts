@@ -3,6 +3,7 @@ import { Observable } from "../lib/Observable";
 import ConnectionStatus from "../lib/ConnectionStatus";
 import GestureController from "./GestureController";
 import AccelerometerController from "./AccelerometerController";
+import DevicePairingUpdateModel from "../data/DevicePairingUpdateModel";
 
 export default class ViewController extends Observable {
 	public static ON_NEXT_PAGE = "nextPageClicked";
@@ -45,6 +46,18 @@ export default class ViewController extends Observable {
 	) as HTMLSpanElement;
 	private readonly $pageCount = document.getElementById(
 		"page-count"
+	) as HTMLSpanElement;
+	private readonly $pairingInfoIcon = document.getElementById(
+		"pairing-info"
+	) as HTMLDivElement;
+	private readonly $pairingInfo = document.getElementById(
+		"pairing-info"
+	) as HTMLDivElement;
+	private readonly $pairingInfoIndex = document.getElementById(
+		"pairing-info-index"
+	) as HTMLSpanElement;
+	private readonly $pairingInfoCount = document.getElementById(
+		"pairing-info-count"
 	) as HTMLSpanElement;
 
 	private readonly gestureController = new GestureController(
@@ -119,11 +132,22 @@ export default class ViewController extends Observable {
 		}
 	};
 
-	public setPairingIndex = (pairingIndex: number): void => {
-		if (pairingIndex === -1) {
+	public setPairingIndex = (
+		devicePairingUpdate: DevicePairingUpdateModel
+	): void => {
+		const deviceIndex = devicePairingUpdate.deviceIndex + 1;
+		const numDevices = devicePairingUpdate.numDevices;
+		if (deviceIndex < 1) {
 			console.log("unpairing");
+			this.$pairingInfoIcon.hidden = true;
+			this.$pairingInfo.classList.remove("index-info");
 		} else {
-			console.log("pairing at index: " + pairingIndex);
+			console.log("pairing at index: " + deviceIndex);
+			this.$pairingInfoIcon.hidden = false;
+			this.$pairingInfo.classList.add("index-info");
+
+			this.$pairingInfoIndex.innerText = deviceIndex.toString();
+			this.$pairingInfoCount.innerText = numDevices.toString();
 		}
 	};
 
@@ -191,25 +215,36 @@ export default class ViewController extends Observable {
 
 		// Accelerometer
 
-		this.accelerometerController.on(AccelerometerController.ON_PAIR_LEFT, () =>
-			this.notifyAll(ViewController.ON_PAIR_LEFT)
+		this.accelerometerController.on(
+			AccelerometerController.ON_PAIR_LEFT,
+			() => {
+				this.toggleHud(true);
+				this.notifyAll(ViewController.ON_PAIR_LEFT);
+			}
 		);
 
-		this.accelerometerController.on(AccelerometerController.ON_PAIR_RIGHT, () =>
-			this.notifyAll(ViewController.ON_PAIR_RIGHT)
+		this.accelerometerController.on(
+			AccelerometerController.ON_PAIR_RIGHT,
+			() => {
+				this.toggleHud(true);
+				this.notifyAll(ViewController.ON_PAIR_RIGHT);
+			}
 		);
 
-		this.accelerometerController.on(AccelerometerController.ON_UNPAIR, () =>
-			this.notifyAll(ViewController.ON_UNPAIR)
-		);
+		this.accelerometerController.on(AccelerometerController.ON_UNPAIR, () => {
+			this.toggleHud(true);
+			this.notifyAll(ViewController.ON_UNPAIR);
+		});
 	};
 
 	private toggleHud = (on?: boolean) => {
-		this.toggleClass(this.$hudContainer, "inactive", on);
+		if (on === undefined) this.toggleClass(this.$hudContainer, "inactive");
+		else this.toggleClass(this.$hudContainer, "inactive", !on);
 	};
 
 	private toggleDeviceIndex = (on?: boolean) => {
-		this.toggleClass(this.$deviceIndexInfo, "inactive", !on);
+		if (on === undefined) this.toggleClass(this.$deviceIndexInfo, "inactive");
+		else this.toggleClass(this.$deviceIndexInfo, "inactive", !on);
 	};
 
 	private toggleClass = (
