@@ -20,7 +20,8 @@ export const getScreenInfo = (): ScreenInfo => {
 			height: window.innerHeight,
 		},
 		colorDepth: window.screen.colorDepth,
-		dpi: getDpi(),
+		// dpi: getDpi(),
+		dpi: 150,
 	};
 };
 

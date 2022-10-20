@@ -89,6 +89,8 @@ function onApplicationStart() {
 						});
 						const pageModel = await DataManager.getCurrentPage();
 
+						viewController.setPageCount(pageCount);
+
 						if (pageModel !== undefined) viewController.setPage(pageModel);
 						else throw new Error("pageModel is undefined");
 
@@ -177,8 +179,13 @@ async function initState(
 	const hasPageChain = await DataManager.hasPageChain();
 	if (hasPageChain) {
 		State.mode = DisplayMode.DISPLAYING;
+		const pageChain = await DataManager.getPageChainInfo();
+		if (pageChain !== undefined) {
+			viewController.setPageCount(pageChain.pageCount);
+		}
+
 		const page = await DataManager.getCurrentPage();
-		if (page) {
+		if (page !== undefined) {
 			viewController.setPage(page);
 		}
 	} else {

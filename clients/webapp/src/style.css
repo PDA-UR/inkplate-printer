@@ -110,6 +110,32 @@ body {
 	border-radius: 50%;
 }
 
+/* page index */
+
+#page-number-info {
+	position: absolute;
+	top: 0;
+	width: 4em;
+	height: 1.5em;
+
+	border-bottom-left-radius: 0.2em;
+	border-bottom-right-radius: 0.2em;
+
+	background-color: rgba(0, 0, 0, 0.8);
+
+	display: flex;
+	flex-direction: row;
+
+	text-align: center;
+	font-size: 0.75rem;
+	color: white;
+	line-height: 1.5em;
+}
+
+#page-number-info > * {
+	flex-grow: 1;
+}
+
 /* image */
 
 #page-image {

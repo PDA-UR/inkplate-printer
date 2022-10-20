@@ -34,6 +34,12 @@ export default class ViewController extends Observable {
 	private readonly $connectionStatus = document.getElementById(
 		"connection-status"
 	) as HTMLDivElement;
+	private readonly $pageNumber = document.getElementById(
+		"page-number"
+	) as HTMLSpanElement;
+	private readonly $pageCount = document.getElementById(
+		"page-count"
+	) as HTMLSpanElement;
 
 	private readonly gestureController = new GestureController(
 		this.$hudContainer
@@ -53,8 +59,17 @@ export default class ViewController extends Observable {
 			this.$currentPageImage.src = URL.createObjectURL(bmpBlob);
 		}
 
+		this.setPageIndex(pageModel.index);
 		this.enable(this.$nextPageButton);
 		this.enable(this.$previousPageButton);
+	};
+
+	public setPageIndex = (pageIndex: number): void => {
+		this.$pageNumber.innerHTML = pageIndex.toString();
+	};
+
+	public setPageCount = (pageCount: number): void => {
+		this.$pageCount.innerHTML = pageCount.toString();
 	};
 
 	public setBlank = () => {
