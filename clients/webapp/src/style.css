@@ -133,7 +133,7 @@ body {
 #page-chain-info {
 	position: absolute;
 	top: 0;
-	padding: 0.1em 0.5em;
+	padding: 0.1em 1em;
 
 	border-bottom-left-radius: 0.2em;
 	border-bottom-right-radius: 0.2em;
@@ -144,9 +144,9 @@ body {
 	flex-direction: column;
 
 	text-align: center;
-	font-size: 0.75rem;
+	font-size: 1rem;
 	color: white;
-	line-height: 1.5em;
+	line-height: 4vh;
 }
 
 #page-chain-info > * {
@@ -206,6 +206,18 @@ body {
 		rgba(0, 0, 0, 0.05) 0px 1px 1px 0px;
 }
 
+* {
+	/*disable text select*/
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+/* animations */
+
 .blink {
 	animation: blink 0.5s infinite;
 }
@@ -218,4 +230,20 @@ body {
 
 .emoji-icon {
 	margin-right: 0.5em;
+}
+
+/* slides down from top, like the printing of a page */
+
+.page-print-animation {
+	animation: page-print 0.5s;
+	box-shadow: 0 0 0.5em 0.5em rgba(0, 0, 0, 0.5);
+}
+
+@keyframes page-print {
+	from {
+		transform: translateY(-100%);
+	}
+	to {
+		transform: translateY(0);
+	}
 }

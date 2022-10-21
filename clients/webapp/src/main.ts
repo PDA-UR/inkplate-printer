@@ -104,8 +104,10 @@ function onApplicationStart() {
 						console.log("pageChainInfoModel2", pageChainInfoModel);
 						viewController.setPageCount(pageChainInfoModel.pageCount);
 
-						if (pageModel !== undefined) viewController.setPage(pageModel);
-						else throw new Error("pageModel is undefined");
+						if (pageModel !== undefined) {
+							viewController.toggleHud(false);
+							viewController.setPage(pageModel, true);
+						} else throw new Error("pageModel is undefined");
 
 						State.mode = DisplayMode.DISPLAYING;
 

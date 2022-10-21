@@ -13,7 +13,7 @@ export default class ViewController extends Observable {
 	// key events
 	private static NEXT_PAGE_KEYS = ["ArrowRight", "l", "L"];
 	private static PREVIOUS_PAGE_KEYS = ["ArrowLeft", "h", "H"];
-	private static ENQUEUE_KEYS = ["Space", "j", "J"];
+	private static ENQUEUE_KEYS = ["Space", " ", "j", "J"];
 
 	// pairing
 	public static ON_PAIR_LEFT = "pairLeft";
@@ -77,10 +77,17 @@ export default class ViewController extends Observable {
 
 	// ~~~~~~~~~~~~ Public methods ~~~~~~~~~~~ //
 
-	public setPage = (pageModel: PageModel): void => {
+	public setPage = (pageModel: PageModel, doAnimate = false): void => {
 		let bmpBlob = pageModel.image;
 
 		if (bmpBlob !== undefined) {
+			if (doAnimate) {
+				this.$currentPageImage.classList.add("page-print-animation");
+				// remove after .5s
+				setTimeout(() => {
+					this.$currentPageImage.classList.remove("page-print-animation");
+				}, 500);
+			}
 			this.$currentPageImage.src = URL.createObjectURL(bmpBlob);
 		}
 
@@ -248,7 +255,7 @@ export default class ViewController extends Observable {
 		});
 	};
 
-	private toggleHud = (on?: boolean) => {
+	public toggleHud = (on?: boolean) => {
 		if (on === undefined) this.toggleClass(this.$hudContainer, "inactive");
 		else this.toggleClass(this.$hudContainer, "inactive", !on);
 	};
