@@ -14,6 +14,7 @@ export default class ViewController extends Observable {
 	private static NEXT_PAGE_KEYS = ["ArrowRight", "l", "L"];
 	private static PREVIOUS_PAGE_KEYS = ["ArrowLeft", "h", "H"];
 	private static ENQUEUE_KEYS = ["Space", " ", "j", "J"];
+	private static TOGGLE_HUD_KEYS = ["Escape", "Enter"];
 
 	// pairing
 	public static ON_PAIR_LEFT = "pairLeft";
@@ -212,6 +213,8 @@ export default class ViewController extends Observable {
 				this.notifyAll(ViewController.ON_PREVIOUS_PAGE);
 			} else if (ViewController.ENQUEUE_KEYS.includes(event.key)) {
 				this.notifyAll(ViewController.ON_ENQUEUE);
+			} else if (ViewController.TOGGLE_HUD_KEYS.includes(event.key)) {
+				this.toggleHud();
 			}
 		});
 
