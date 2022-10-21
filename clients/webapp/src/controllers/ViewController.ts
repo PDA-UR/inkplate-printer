@@ -11,9 +11,9 @@ export default class ViewController extends Observable {
 	public static ON_ENQUEUE = "enqueueClicked";
 
 	// key events
-	private static NEXT_PAGE_KEYS = ["ArrowRight", "l", "L"];
-	private static PREVIOUS_PAGE_KEYS = ["ArrowLeft", "h", "H"];
-	private static ENQUEUE_KEYS = ["Space", " ", "j", "J"];
+	private static NEXT_PAGE_KEYS = ["ArrowRight", "l", "L", "d", "D"];
+	private static PREVIOUS_PAGE_KEYS = ["ArrowLeft", "h", "H", "a", "A"];
+	private static ENQUEUE_KEYS = ["Space", " ", "j", "J", "s", "S"];
 	private static TOGGLE_HUD_KEYS = ["Escape", "Enter"];
 
 	// pairing
