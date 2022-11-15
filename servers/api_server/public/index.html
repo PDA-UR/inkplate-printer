@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1"
+		/>
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="/pwa-192x192.png" />
+		<link rel="mask-icon" href="/favicon.svg" color="#FFFFFF" />
+		<meta name="msapplication-TileColor" content="#FFFFFF" />
+		<meta name="theme-color" content="#ffffff" />
+		<title>Vite App</title>
+		<!-- style -->
+		
+		<script type="module" crossorigin src="/assets/index.05ef78f4.js"></script>
+		<link rel="stylesheet" href="/assets/index.92cb3811.css">
+	</head>
+	<body>
+		<div id="app">
+			<img id="page-image" />
+			<div id="hud-container">
+				<div id="page-nav-buttons">
+					<div id="previous-page-button" class="button"></div>
+					<div id="next-page-button" class="button"></div>
+				</div>
+				<div
+					id="request-page-chain-button"
+					class="button x-centered shadow"
+					disabled
+				>
+					Request Document
+				</div>
+				<div id="pair-menu-button" class="button shadow" disabled>🔗</div>
+				<div id="page-chain-info" class="x-centered shadow">
+					<div id="page-number-info" class="index-info">
+						<span class="emoji-icon">📄</span>
+						<span id="page-number"></span>
+						/
+						<span id="page-count"></span>
+					</div>
+					<div id="pairing-info" hidden>
+						<span class="emoji-icon">🔗</span>
+						<span id="pairing-info-index"></span>
+						/
+						<span id="pairing-info-count"></span>
+					</div>
+				</div>
+			</div>
+			<div id="device-index" class="button xy-centered inactive shadow"></div>
+			<div id="connection-status" class="disconnected"></div>
+		</div>
+		
+	</body>
+</html>

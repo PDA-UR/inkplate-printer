@@ -1,0 +1,35 @@
+// Development information:
+// https://www.cups.org/doc/ppd-compiler.html
+
+
+// Include standard font and media definitions
+#include <font.defs>
+#include <media.defs>
+
+// List the fonts that are supported, in this case all standard fonts
+Font *
+
+// PostScript printer attributes
+Attribute DefaultColorSpace "" RGB
+Attribute PortraitOrientation "" "Plus90"
+Attribute "cupsVersion" "" "2.4"
+Attribute "FileSystem" "" "False"
+Attribute "TTRasterizer" "" "Type42"
+Version "1.0"
+
+
+#media "135x205" 135mm 205mm
+
+// Inkplate 10
+{
+    Manufacturer "Thomas Fischer PDA-UR"
+    ModelName "E-Paper Printer"
+    PCFileName "Inkplate10.ppd"
+
+    ColorDevice true
+    *ColorModel RGB/Color rgb chunky 0
+
+    *MediaSize 135x205
+    *Resolution k 8 0 0 0 300dpi
+    // *Filter application/vnd.cups-raster 0 /usr/lib/cups/filter/rastertopng
+}
