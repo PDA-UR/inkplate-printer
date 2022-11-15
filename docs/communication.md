@@ -1,14 +1,29 @@
 # Device - API communication
 
-## 1.0 Single device mode
+## Terms
 
-First to implement. One document per device.
+- **Device**: Inkplate/Webbrowser (client)
+- **API Server**: The server that handles the API requests
+- **Print Server**: The server that handles the print requests
+- **Page Chain**: An array of bitmaps, sorted by page number
 
-### Request new page chains
+## Initial registration
+
+When a device boots/starts for the first time, it registers itself to the API Server. Registration information includes:
+
+- uuid
+- isBrowser
+- screen info
+  - resolution
+    - width
+    - height
+  - color depth
+  - dpi
+
+The server ties this information to the id of the socket connection.
 
 ```mermaid
 sequenceDiagram
-    participant P as Print Server
     participant S as API Server
     participant D as Device
 
@@ -17,72 +32,122 @@ sequenceDiagram
     %% -): asynchronous
 
     critical Device Registration
-        D -) S: Register request message
-        Note over S,D: resolution, color depth
-        S -) D: Register success message
-        Note over S,D: device index
+        D -) S: Register message
+        Note over S,D: uuid, screen info, isBrowser
 
-        P -) S: New document printed
+        S ->> S: Add to Registered Devices
 
-        critical Download: Start page
-            S -) D: Show page message
-            Note over S,D: page index
-            D ->> S: Page download request
-            Note over S,D: page index
-            S ->> D: Page download response
-            Note over S,D: page image file
-            D ->> D: Save & display page
-        end
+        S -) D: Registered message
+        Note over S,D: wasSuccessful
+    end
 
-        opt Download: Remaining pages
-            S -) D: Pages ready message
-            Note over S,D: num pages
-            loop For each image
-                D ->> S: Page download request
-                Note over S,D: page index
-                S ->> D: Page download response
-                Note over S,D: page image file
-                D ->> D: Save page
-            end
-        end
+    opt Device Unregistration
+
+        %% Socket connection closes
+
+        D -) S: Socket connection closes
+
+        S ->> S: Remove from Registered Devices
 
     end
 ```
 
-## 2.0 Multi device mode
+## Page chains
 
-Second to implement. One document can be printed on multiple devices.
+### Enqueue / Dequeue
 
-Like single device mode, but the API server can buffer multiple device registrations and page chains.
-
-## 3.0 Paired devices
-
-Last to implement. Multiple devices can be paired to print one document. Navigation between pages is synchronized.
-
-### Page update
-
-Called when a next/previous page button is clicked on the device.
+A registered device can enqueue or dequeue itself to receive a page chain.
+Enqueued devices receive a message once a new page chain is available.
 
 ```mermaid
 sequenceDiagram
     participant S as API Server
     participant D as Device
 
-    D -) S: Page update message
-    Note over S,D: page index
+    critical Enqueue
+        D -) S: Enqueue message
 
-    S ->> S: Update page state
+        S ->> S: Add to Enqueued Devices
+
+        S -) D: Update device index message
+        Note over S,D: deviceIndex
+    end
+
+    opt Dequeue
+        D -) S: Dequeue message
+
+        S ->> S: Remove from Enqueued Devices
+
+        S -) D: Update device index message
+        Note over S,D: deviceIndex = -1
+    end
+
 ```
 
-### Show page
+### Requesting new page chains
 
-Called when a device should show another page.
+A document can only be printed, if **at least one device is [enqueued](#enqueue--dequeue)**. Otherwise, the printing dialogue will return an error.
 
 ```mermaid
 sequenceDiagram
+    participant P as Print Server
+    participant S as API Server
+    participant D as Enqueued Device
+
+    %% ->>: synchronous
+    %% -): asynchronous
+
+    P -) S: New document printed
+
+    critical Download: Initial page
+        S -) D: Show page message
+        Note over S,D: page index (= device index)
+        D ->> S: Page download GET request
+        Note over S,D: page index
+        S ->> D: Page download response
+        Note over S,D: image blob
+        D ->> D: Save & display page
+    end
+
+    opt Download: Remaining pages
+        S -) D: Pages ready message
+        Note over S,D: num pages
+        loop For each image
+            D ->> S: Page download request
+            Note over S,D: page index
+            S ->> D: Page download response
+            Note over S,D: image blob
+            D ->> D: Save page
+        end
+    end
+```
+
+## Device pairing
+
+Multiple devices can be paired together to synchronize pagination.
+The current implementation only supports prepending or appending devices to one another.
+
+```mermaid
+sequenceDiagram
+    participant OD as Other Devices
     participant S as API Server
     participant D as Device
 
-    S -) D: Show page message
-    Note over S,D: page index
+    critical Pairing
+        D -) S: Pair message
+        Note over S,D: doPrepend
+
+        S ->> S: Add to Paired Devices
+
+        S -) D: Update pairing index message
+        Note over S,D: deviceIndex, numDevices
+    end
+
+    loop On every pagination
+        D -) S: Page update message
+        Note over S,D: newPageIndex
+
+        S ->> OD: Show page message
+        Note over S,OD: pageIndex
+    end
 ```
