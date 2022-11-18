@@ -67,7 +67,7 @@ enum
 
 // -------- Device -------- //
 
-int queueing_index = -1;
+int device_index = -1;
 int pairing_index = -1;
 
 // ~~~~~~~~~~~~~~~ Network ~~~~~~~~~~~~~~~ //
@@ -136,8 +136,6 @@ void load_state()
         // read state
         page_index = doc["page_index"];
         page_count = doc["page_count"];
-        queueing_index = doc["queueing_index"];
-        pairing_index = doc["pairing_index"];
         strcpy(doc_name, doc["doc_name"]);
       }
       else
@@ -164,9 +162,6 @@ void save_state()
   doc["page_index"] = page_index;
   doc["page_count"] = page_count;
   doc["doc_name"] = doc_name;
-  doc["display_mode"] = display_mode;
-  doc["queueing_index"] = queueing_index;
-  doc["pairing_index"] = pairing_index;
 
   // serialize json
   String json;
@@ -333,11 +328,13 @@ void send_register_message()
 // Enqueue
 void send_enqueue_message()
 {
+  send_message(ENQUEUE_MESSAGE, nullptr);
 }
 
 // Dequeue
 void send_dequeue_message()
 {
+  send_message(DEQUEUE_MESSAGE, nullptr);
 }
 
 // -------- Receive ------- //
@@ -411,6 +408,8 @@ void handle_socket_messages(
 
   if (name == REGISTERED_MESSAGE)
     handle_registered_message(data);
+  else if (name == UPDATE_DEVICE_INDEX_MESSAGE)
+    handle_update_device_index_message(data);
 }
 
 // Registered
@@ -427,6 +426,14 @@ void handle_registered_message(DynamicJsonDocument data)
     USE_SERIAL.println("Registered unsuccessfully");
     is_registered = false;
   }
+}
+
+// Update device index
+void handle_update_device_index_message(DynamicJsonDocument data)
+{
+  USE_SERIAL.print("Handling update device index message, new index:");
+  device_index = data["deviceIndex"].as<int>();
+  USE_SERIAL.println(device_index);
 }
 
 // ====================================================== //
@@ -494,15 +501,14 @@ void touchpad_routine()
   switch (touchpad_pressed)
   {
   case tp_left:
-    Serial.println("TP left");
-    prev_page();
+    handle_left_tp_pressed();
     break;
   case tp_middle:
-    Serial.println("TP middle");
+    handle_middle_tp_pressed();
     break;
   case tp_right:
-    Serial.println("TP right");
-    next_page();
+    // handle_right_tp_pressed();
+    handle_middle_tp_pressed();
     break;
   case tp_none:
     // no button pressed, ignore
@@ -522,6 +528,27 @@ void read_touchpads()
     touchpad_pressed = tp_right;
   else
     touchpad_pressed = tp_none;
+}
+
+void handle_left_tp_pressed()
+{
+  USE_SERIAL.println("LEFT tp pressed");
+  prev_page();
+}
+
+void handle_middle_tp_pressed()
+{
+  USE_SERIAL.println("MIDDLE tp pressed");
+  if (device_index == -1)
+    send_enqueue_message();
+  else
+    send_dequeue_message();
+}
+
+void handle_right_tp_pressed()
+{
+  USE_SERIAL.println("RIGHT tp pressed");
+  next_page();
 }
 
 void prev_page()

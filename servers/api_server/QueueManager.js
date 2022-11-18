@@ -107,7 +107,7 @@ class QueueManager {
 	};
 
 	static #updateDeviceIndex = (socket, deviceIndex) => {
-		socket.emit("updateDeviceIndex", deviceIndex);
+		socket.emit("updateDeviceIndex", { deviceIndex });
 	};
 
 	static #ps2bpm(filepath, device) {

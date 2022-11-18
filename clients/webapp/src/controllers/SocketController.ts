@@ -137,7 +137,11 @@ export default class SocketController extends Observable {
 	};
 
 	// device index
-	private onUpdateDeviceIndex = (deviceIndex: number): void => {
+	private onUpdateDeviceIndex = ({
+		deviceIndex,
+	}: {
+		deviceIndex: number;
+	}): void => {
 		this.notifyAll(SocketController.UPDATE_DEVICE_INDEX_MESSAGE, deviceIndex);
 	};
 
