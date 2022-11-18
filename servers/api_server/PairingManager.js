@@ -60,7 +60,7 @@ class DevicePair {
 					const device = DeviceManager.getDeviceByUuid(id);
 					if (device) {
 						console.log("updateing page index", newPageIndex);
-						device.socket.emit("showPage", newPageIndex);
+						device.socket.emit("showPage", { pageIndex: newPageIndex });
 					}
 				}
 			});

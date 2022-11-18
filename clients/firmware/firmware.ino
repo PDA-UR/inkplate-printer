@@ -18,6 +18,14 @@
 // ##################################################################### //
 
 // ====================================================== //
+// ====================== Constants ===================== //
+// ====================================================== //
+
+// ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
+
+const String PAGE_CHAIN_DIR = "/page_chain/";
+
+// ====================================================== //
 // ====================== Variables ===================== //
 // ====================================================== //
 
@@ -93,23 +101,94 @@ void enter_deep_sleep()
 // ======================= Storage ====================== //
 // ====================================================== //
 
-void save_img_buff_to_sd(uint8_t *buf, String &filename)
+void setup_storage()
 {
-  SdFile file;
-  String bmp_filename = filename + ".bmp";
+  // Init SD card. Display if SD card is init properly or not.
+  USE_SERIAL.println("Setup: Storage");
 
-  // make sure file can be created, otherwise print error
-  if (file.open(bmp_filename.c_str(), O_RDWR | O_CREAT | O_AT_END))
+  if (display.sdCardInit())
   {
-    int file_size = READ32(buf + 2);
-    file.write(buf, file_size);
-    file.flush();
-    file.close();
+    USE_SERIAL.println("SD Card OK!");
 
-    Serial.println("file saved");
+    SdFile root;
+    USE_SERIAL.println("Checking " + PAGE_CHAIN_DIR);
+    if (root.open(PAGE_CHAIN_DIR.c_str(), O_RDWR | O_CREAT))
+    {
+      USE_SERIAL.println("Page chain dir initialized");
+      root.close();
+    }
+    else
+      USE_SERIAL.println("Failed to open root");
   }
   else
-    Serial.println("Error saving img buff to SD!");
+    USE_SERIAL.println("SD Card ERROR!");
+}
+
+void save_page(uint8_t *buf, int &page_index)
+{
+  SdFile file;
+  String bmp_filename = PAGE_CHAIN_DIR + get_page_filename(page_index);
+
+  // make sure file can be created, otherwise print error
+
+  USE_SERIAL.println(bmp_filename.c_str());
+
+  if (file.open(bmp_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC))
+  {
+    int file_size = READ32(buf + 2);
+    file.truncate(0);
+    file.write(buf, file_size);
+    file.flush();
+  }
+  else
+    USE_SERIAL.println("Error opening bmp file");
+
+  file.close();
+}
+
+void clear_stored_pages()
+{
+  USE_SERIAL.println("Clearing stored images");
+  SdFile dir;
+  SdFile file;
+  if (dir.open(PAGE_CHAIN_DIR.c_str()))
+  {
+    while (file.openNext(&dir, O_READ))
+    {
+      file.remove();
+      file.close();
+    }
+    dir.close();
+  }
+  else
+    Serial.println("Error opening page chain directory");
+}
+
+int get_num_stored_pages()
+{
+  File dir;
+  SdFile file;
+  int count = 0;
+  if (dir.open(PAGE_CHAIN_DIR.c_str()))
+  {
+    while (file.openNext(&dir, O_READ))
+    {
+      count++;
+      file.close();
+    }
+    dir.close();
+  }
+  else
+    Serial.println("Error opening page chain directory");
+
+  return count;
+}
+
+String get_page_filename(int page_index)
+{
+  String filename = String(page_index) + ".bmp";
+  USE_SERIAL.println("filename " + filename);
+  return filename;
 }
 
 void load_state()
@@ -209,6 +288,24 @@ uint8_t *download_file(String &doc_name, int &page_num)
   uint8_t *img_buf = display.downloadFile(url.c_str(), &len);
   Serial.println("image downloaded");
   return img_buf;
+}
+
+uint8_t *download_page(int &page_num)
+{
+  String url = String(HOST) + "/api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
+
+  int len = DISPLAY_WIDTH * DISPLAY_HEIGHT; // display resolution
+  Serial.println("Downloading...");
+  uint8_t *img_buf = display.downloadFile(url.c_str(), &len);
+  Serial.println("image downloaded");
+  return img_buf;
+}
+
+void download_and_save_page(int page_index)
+{
+  uint8_t *img_buf = download_page(device_index);
+  if (img_buf != nullptr)
+    save_page(img_buf, device_index);
 }
 
 bool server_has_new_file(String &doc_name, int &num_pages)
@@ -410,6 +507,10 @@ void handle_socket_messages(
     handle_registered_message(data);
   else if (name == UPDATE_DEVICE_INDEX_MESSAGE)
     handle_update_device_index_message(data);
+  else if (name == SHOW_PAGE_MESSAGE)
+    handle_show_page_message(data);
+  else if (name == PAGES_READY_MESSAGE)
+    handle_pages_ready_message(data);
 }
 
 // Registered
@@ -434,6 +535,40 @@ void handle_update_device_index_message(DynamicJsonDocument data)
   USE_SERIAL.print("Handling update device index message, new index:");
   device_index = data["deviceIndex"].as<int>();
   USE_SERIAL.println(device_index);
+}
+
+// Show page message
+void handle_show_page_message(DynamicJsonDocument data)
+{
+  USE_SERIAL.println("Handling show page message");
+  int new_page_index = data["pageIndex"].as<int>();
+  USE_SERIAL.println(new_page_index);
+
+  page_index = new_page_index;
+  display_mode = displaying;
+}
+
+void handle_pages_ready_message(DynamicJsonDocument data)
+{
+  USE_SERIAL.println("Handling pages ready message");
+  int num_pages = data["pageCount"].as<int>();
+  USE_SERIAL.println(num_pages);
+
+  clear_stored_pages();
+
+  int vip_page = device_index - 1;
+  // Download the initial page
+  download_and_save_page(vip_page);
+  page_index = device_index;
+
+  // Download the rest of the pages
+  for (int i = 0; i < num_pages; i++)
+  {
+    if (i != vip_page)
+      download_and_save_page(i);
+  }
+
+  device_index = -1;
 }
 
 // ====================================================== //
@@ -470,7 +605,7 @@ void request_doc_routine()
         Serial.println("drawImage failed");
     }
 
-    save_img_buff_to_sd(img_buf, doc_name + "_" + cur_page);
+    // save_page(img_buf, doc_name + "_" + cur_page);
   }
 }
 
@@ -612,15 +747,7 @@ void setup()
 
   display.begin();
 
-  // Init SD card. Display if SD card is init properly or not.
-  if (display.sdCardInit())
-  {
-    display.println("SD Card OK!");
-  }
-  else
-  {
-    display.println("SD Card ERROR!");
-  }
+  setup_storage();
 
   load_state();
 

@@ -132,7 +132,7 @@ export default class SocketController extends Observable {
 	};
 
 	// page show
-	private onShowPage = (pageIndex: number): void => {
+	private onShowPage = ({ pageIndex }: { pageIndex: number }): void => {
 		this.notifyAll(SocketController.SHOW_PAGE_MESSAGE, pageIndex);
 	};
 
