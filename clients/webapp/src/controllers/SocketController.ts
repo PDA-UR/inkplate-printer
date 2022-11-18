@@ -6,17 +6,23 @@ import DeviceModel, { getScreenInfo } from "../data/DeviceModel";
 import PageChainInfoModel from "../data/PageChainInfoModel";
 
 export default class SocketController extends Observable {
-	public static ON_DISCONNECT = "disconnect";
-	public static ON_CONNECT = "connect";
+	public static DISCONNECT_MESSAGE = "disconnect";
+	public static CONNECT_MESSAGE = "connect";
 
-	public static ON_REGISTER = "register";
-	public static ON_REGISTERED = "registered";
+	public static REGISTER_MESSAGE = "register";
+	public static REGISTERED_MESSAGE = "registered";
 
-	public static ON_UPDATE_DEVICE_INDEX = "updateDeviceIndex";
-	public static ON_SHOW_PAGE = "showPage";
-	public static ON_PAGES_READY = "pagesReady";
+	public static ENQUEUE_MESSAGE = "enqueue";
+	public static DEQUEUE_MESSAGE = "dequeue";
 
-	public static ON_UPDATE_PAIRING_INDEX = "updatePairingIndex";
+	public static UPDATE_DEVICE_INDEX_MESSAGE = "updateDeviceIndex";
+	public static UPDATE_PAGE_INDEX = "updatePageIndex";
+	public static SHOW_PAGE_MESSAGE = "showPage";
+	public static PAGES_READY_MESSAGE = "pagesReady";
+
+	public static PAIR_MESSAGE = "pair";
+	public static UNPAIR_MESSAGE = "unpair";
+	public static UPDATE_PAIRING_INDEX_MESSAGE = "updatePairingIndex";
 
 	private readonly socket = io();
 	private connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED;
@@ -42,75 +48,79 @@ export default class SocketController extends Observable {
 			isBrowser: true,
 			pageChainId: pageChainId || -1,
 		};
-		this.socket.emit(SocketController.ON_REGISTER, device);
+		this.socket.emit(SocketController.REGISTER_MESSAGE, device);
 
-		this.notifyAll(SocketController.ON_REGISTER);
+		this.notifyAll(SocketController.REGISTER_MESSAGE);
 	}
 
 	// queuing
 
 	public sendEnqueueMessage(): void {
 		this.connectionStatus = ConnectionStatus.QUEUEING;
-		this.socket.emit("enqueue");
+		this.socket.emit(SocketController.ENQUEUE_MESSAGE);
 	}
 
 	public sendDequeueMessage(): void {
 		this.connectionStatus = this.socket.connected
 			? ConnectionStatus.CONNECTED
 			: ConnectionStatus.DISCONNECTED;
-		this.socket.emit("dequeue");
+		this.socket.emit(SocketController.DEQUEUE_MESSAGE);
 	}
 
 	// pairing
 
 	public sendPairMessage(doPrepend: boolean): void {
-		this.socket.emit("pair", doPrepend);
+		this.socket.emit(SocketController.PAIR_MESSAGE, doPrepend);
 	}
 
 	public sendUnpairMessage(): void {
-		this.socket.emit("unpair");
+		this.socket.emit(SocketController.UNPAIR_MESSAGE);
 	}
 
 	// paging, pairing
 
 	public sendUpdatePageIndexMessage(pageIndex: number): void {
-		this.socket.emit("updatePageIndex", pageIndex);
+		this.socket.emit(SocketController.UPDATE_PAGE_INDEX, pageIndex);
 	}
 
 	// private
 
 	private registerEvents = (): void => {
-		this.socket.on(SocketController.ON_CONNECT, async () => {
+		this.socket.on(SocketController.CONNECT_MESSAGE, async () => {
 			const uuid: string = (await DataManager.getUUID()) as string;
 			const pageChainId = (await DataManager.getPageChainInfo())?.id;
 
 			this.sendRegisterMessage(uuid, pageChainId);
 		});
 
-		this.socket.on(SocketController.ON_REGISTERED, this.onRegistered);
+		this.socket.on(SocketController.REGISTERED_MESSAGE, this.onRegistered);
 
-		this.socket.on(SocketController.ON_DISCONNECT, () => {
-			this.notifyAll(SocketController.ON_DISCONNECT);
+		this.socket.on(SocketController.DISCONNECT_MESSAGE, () => {
+			this.notifyAll(SocketController.DISCONNECT_MESSAGE);
 		});
-		this.socket.on(SocketController.ON_PAGES_READY, this.onPagesReady);
-		this.socket.on(SocketController.ON_SHOW_PAGE, this.onShowPage);
+		this.socket.on(SocketController.PAGES_READY_MESSAGE, this.onPagesReady);
+		this.socket.on(SocketController.SHOW_PAGE_MESSAGE, this.onShowPage);
 		this.socket.on(
-			SocketController.ON_UPDATE_DEVICE_INDEX,
+			SocketController.UPDATE_DEVICE_INDEX_MESSAGE,
 			this.onUpdateDeviceIndex
 		);
 		this.socket.on(
-			SocketController.ON_UPDATE_PAIRING_INDEX,
+			SocketController.UPDATE_PAIRING_INDEX_MESSAGE,
 			this.onUpdatePairingIndex
 		);
 	};
 
-	private onRegistered = (wasSuccessful: boolean): void => {
+	private onRegistered = ({
+		wasSuccessful,
+	}: {
+		wasSuccessful: boolean;
+	}): void => {
 		if (wasSuccessful) {
 			this.connectionStatus = ConnectionStatus.CONNECTED;
-			this.notifyAll(SocketController.ON_REGISTERED);
+			this.notifyAll(SocketController.REGISTERED_MESSAGE);
 		} else {
 			this.connectionStatus = ConnectionStatus.DISCONNECTED;
-			this.notifyAll(SocketController.ON_DISCONNECT);
+			this.notifyAll(SocketController.DISCONNECT_MESSAGE);
 		}
 	};
 
@@ -118,17 +128,17 @@ export default class SocketController extends Observable {
 	private onPagesReady = (
 		pageChainInfoModel: PageChainInfoModel | undefined
 	): void => {
-		this.notifyAll(SocketController.ON_PAGES_READY, pageChainInfoModel);
+		this.notifyAll(SocketController.PAGES_READY_MESSAGE, pageChainInfoModel);
 	};
 
 	// page show
 	private onShowPage = (pageIndex: number): void => {
-		this.notifyAll(SocketController.ON_SHOW_PAGE, pageIndex);
+		this.notifyAll(SocketController.SHOW_PAGE_MESSAGE, pageIndex);
 	};
 
 	// device index
 	private onUpdateDeviceIndex = (deviceIndex: number): void => {
-		this.notifyAll(SocketController.ON_UPDATE_DEVICE_INDEX, deviceIndex);
+		this.notifyAll(SocketController.UPDATE_DEVICE_INDEX_MESSAGE, deviceIndex);
 	};
 
 	// pairing index update
@@ -137,7 +147,7 @@ export default class SocketController extends Observable {
 		numDevices?: number
 	): void => {
 		console.log("onUpdatePairingIndex", deviceIndex, numDevices);
-		this.notifyAll(SocketController.ON_UPDATE_PAIRING_INDEX, {
+		this.notifyAll(SocketController.UPDATE_PAIRING_INDEX_MESSAGE, {
 			deviceIndex,
 			numDevices: numDevices || 0,
 		});

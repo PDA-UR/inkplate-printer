@@ -6,10 +6,14 @@ const on = (socket, device) => {
 	if (device.uuid && device.screenInfo) {
 		device.socket = socket;
 		DeviceManager.register(socket.id, device);
-		socket.emit("registered", true);
+		socket.emit("registered", {
+			wasSuccessful: true,
+		});
 	} else {
 		console.error("invalid register event", device);
-		socket.emit("registered", false);
+		socket.emit("registered", {
+			wasSuccessful: false,
+		});
 	}
 };
 

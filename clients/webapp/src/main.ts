@@ -17,17 +17,17 @@ function onApplicationStart() {
 
 	// ~~~~~~~~~~~~ Socket events ~~~~~~~~~~~~ //
 
-	socketConnection.on(SocketController.ON_REGISTER, () => {
+	socketConnection.on(SocketController.REGISTER_MESSAGE, () => {
 		console.log("registering");
 		updateConnectionStatus();
 	});
 
-	socketConnection.on(SocketController.ON_REGISTERED, async () => {
+	socketConnection.on(SocketController.REGISTERED_MESSAGE, async () => {
 		console.log("connected");
 		updateConnectionStatus();
 	});
 
-	socketConnection.on(SocketController.ON_DISCONNECT, () => {
+	socketConnection.on(SocketController.DISCONNECT_MESSAGE, () => {
 		console.log("disconnected");
 		if (socketConnection.getConnectionStatus() === ConnectionStatus.QUEUEING) {
 			State.toggleDisplayMode(false);
@@ -37,7 +37,7 @@ function onApplicationStart() {
 	});
 
 	socketConnection.on(
-		SocketController.ON_SHOW_PAGE,
+		SocketController.SHOW_PAGE_MESSAGE,
 		async (event: AppEvent<number>) => {
 			const pageIndex = event.data;
 			if (pageIndex !== undefined) {
@@ -68,7 +68,7 @@ function onApplicationStart() {
 	);
 
 	socketConnection.on(
-		SocketController.ON_UPDATE_DEVICE_INDEX,
+		SocketController.UPDATE_DEVICE_INDEX_MESSAGE,
 		async (event: AppEvent<number>) => {
 			const deviceIndex = event.data;
 			if (deviceIndex !== undefined) {
@@ -85,7 +85,7 @@ function onApplicationStart() {
 	);
 
 	socketConnection.on(
-		SocketController.ON_PAGES_READY,
+		SocketController.PAGES_READY_MESSAGE,
 		async (event: AppEvent<PageChainInfoModel | undefined>) => {
 			console.log("pages ready main.ts", event);
 			const pageChainInfoModel = event.data;
@@ -130,7 +130,7 @@ function onApplicationStart() {
 	);
 
 	socketConnection.on(
-		SocketController.ON_UPDATE_PAIRING_INDEX,
+		SocketController.UPDATE_PAIRING_INDEX_MESSAGE,
 		(event: AppEvent<DevicePairingUpdateModel>) => {
 			const devicePairingUpdateModel = event.data!;
 			State.mode =

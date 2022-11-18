@@ -1,0 +1,6 @@
+{
+    "configuration": "PSRAM=enabled,PartitionScheme=huge_app,CPUFreq=240,UploadSpeed=115200,DebugLevel=none",
+    "board": "Croduino_Boards:Inkplate:Inkplate10",
+    "sketch": "clients/firmware/firmware.ino",
+    "port": "/dev/tty.usbserial-14210"
+}
