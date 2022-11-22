@@ -78,7 +78,7 @@ class QueueManager {
 			ps2bmpJobs.push(
 				this.#ps2bpm(filepath, device.device)
 					.then((pageCount) => {
-						console.log("Sending pages ready message", pageCount, device);
+						console.log("Sending pages ready message");
 						device.socket.emit("pagesReady", {
 							pageCount,
 							id: pageChainId,

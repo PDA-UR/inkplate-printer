@@ -12,11 +12,11 @@ const fs = require("fs");
 const route = {
 	type: "get",
 	on: (req, res) => {
-		console.log("GET /api/img");
 		const clientMac = req.query.client,
 			pageNum = req.query.page_num,
 			filePath = getFilePath(clientMac, pageNum),
 			bitmap = getBitmap(filePath);
+		console.log("GET /api/img", clientMac, pageNum, filePath);
 
 		if (bitmap) {
 			// send bmp as blob

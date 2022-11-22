@@ -124,7 +124,7 @@ void setup_storage()
     USE_SERIAL.println("SD Card ERROR!");
 }
 
-void save_page(uint8_t *buf, int &page_index)
+void save_page(int &page_index, uint8_t *img_download_buffer)
 {
   SdFile file;
   String bmp_filename = PAGE_CHAIN_DIR + get_page_filename(page_index);
@@ -135,9 +135,9 @@ void save_page(uint8_t *buf, int &page_index)
 
   if (file.open(bmp_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC))
   {
-    int file_size = READ32(buf + 2);
+    int file_size = READ32(img_download_buffer + 2);
     file.truncate(0);
-    file.write(buf, file_size);
+    file.write(img_download_buffer, file_size);
     file.flush();
   }
   else
@@ -279,66 +279,31 @@ bool state_file_exists()
 // ======================= Network ====================== //
 // ====================================================== //
 
-uint8_t *download_file(String &doc_name, int &page_num)
-{
-  String url = String(HOST) + "/img" + "?client=" + mac_addr + "&doc_name=" + doc_name + "&page_num=" + page_num;
-
-  int len = 1200 * 825; // display resolution
-  Serial.println("Downloading...");
-  uint8_t *img_buf = display.downloadFile(url.c_str(), &len);
-  Serial.println("image downloaded");
-  return img_buf;
-}
-
 uint8_t *download_page(int &page_num)
 {
-  String url = String(HOST) + "/api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
+  USE_SERIAL.println("downloading page");
+  String url = String(HOST) + "api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
+  USE_SERIAL.println(url);
 
   int len = DISPLAY_WIDTH * DISPLAY_HEIGHT; // display resolution
   Serial.println("Downloading...");
-  uint8_t *img_buf = display.downloadFile(url.c_str(), &len);
+  uint8_t *downloaded_image = display.downloadFile(url.c_str(), &len);
+
   Serial.println("image downloaded");
-  return img_buf;
+  return downloaded_image;
 }
 
 void download_and_save_page(int page_index)
 {
-  uint8_t *img_buf = download_page(device_index);
+  uint8_t *img_buf = download_page(page_index);
   if (img_buf != nullptr)
-    save_page(img_buf, device_index);
-}
-
-bool server_has_new_file(String &doc_name, int &num_pages)
-{
-  HTTPClient http;
-  uint16_t port = 5000;
-  String server_addr = String(HOST) + "?client" + mac_addr;
-  http.begin(server_addr);
-
-  Serial.println("Requesting from server address: " + server_addr);
-  int response_code = http.GET();
-  if (response_code == 200)
   {
-    String payload = http.getString();
-    Serial.printf("payload:\t %s\n", payload.c_str());
-    int index = payload.indexOf("_");                 // payload containing job name & num pages, e.g. job-1_3
-    doc_name = payload.substring(0, index);           // job name, e.g. job-1
-    num_pages = payload.substring(index + 1).toInt(); // number of pages, e.g. 3
-
-    Serial.printf("server has new job %s (%i pages)\n", doc_name.c_str(), num_pages);
-    return true;
+    save_page(page_index, img_buf);
+    USE_SERIAL.println("Page saved, freeing memory");
+    // free memory
+    free(img_buf);
+    USE_SERIAL.printf("Free memory: %d", esp_get_free_heap_size());
   }
-  else if (response_code == 201)
-  {
-    Serial.println("No new image available.");
-    return false;
-  }
-  else
-  {
-    Serial.println("HTTP Error");
-    return false;
-  }
-  return false;
 }
 
 // ====================================================== //
@@ -521,6 +486,7 @@ void handle_registered_message(DynamicJsonDocument data)
   {
     USE_SERIAL.println("Registered successfully");
     is_registered = true;
+    handle_middle_tp_pressed(); // TODO: Remove
   }
   else
   {
@@ -556,16 +522,18 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 
   clear_stored_pages();
 
-  int vip_page = device_index - 1;
   // Download the initial page
-  download_and_save_page(vip_page);
+  download_and_save_page(device_index);
   page_index = device_index;
 
   // Download the rest of the pages
-  for (int i = 0; i < num_pages; i++)
+  for (int i = 1; i <= num_pages; i++)
   {
-    if (i != vip_page)
+    if (i != device_index)
+    {
       download_and_save_page(i);
+      socket_routine(); // necessary to avoid DC during long downloads
+    }
   }
 
   device_index = -1;
@@ -575,40 +543,6 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 // ====================== Document ====================== //
 // ====================================================== //
 
-void request_doc_routine()
-{
-  int num_pages;
-  String doc_name;
-  return; // TODO: Remove
-
-  if (!server_has_new_file(doc_name, num_pages))
-    return;
-
-  for (int cur_page = 1; cur_page <= num_pages; ++cur_page)
-  {
-    uint8_t *img_buf = download_file(doc_name, cur_page);
-    Serial.println("file downloaded");
-    if (img_buf == nullptr)
-    {
-      Serial.println("Error downloading file.");
-      return;
-    }
-
-    if (cur_page == 1) // immediately display the first page
-    {
-      if (display.drawBitmapFromBuffer(img_buf, 0, 0, 0, 0))
-      {
-        Serial.println("drawImage returned 1");
-        display.display();
-      }
-      else
-        Serial.println("drawImage failed");
-    }
-
-    // save_page(img_buf, doc_name + "_" + cur_page);
-  }
-}
-
 // ====================================================== //
 // ====================== Touchpads ===================== //
 // ====================================================== //
@@ -616,7 +550,6 @@ void request_doc_routine()
 void touchpad_routine()
 {
   read_touchpads();
-  // Serial.println(touchpad_pressed);
   if (touchpad_pressed == tp_none && !touchpad_released)
   {
     Serial.println("nothing pressed");
@@ -642,8 +575,8 @@ void touchpad_routine()
     handle_middle_tp_pressed();
     break;
   case tp_right:
-    // handle_right_tp_pressed();
-    handle_middle_tp_pressed();
+    handle_right_tp_pressed();
+    // handle_middle_tp_pressed();
     break;
   case tp_none:
     // no button pressed, ignore
@@ -756,7 +689,6 @@ void setup()
 
   socket_setup();
 
-  // request_doc_routine();
   // enter_deep_sleep();
 }
 
@@ -770,7 +702,6 @@ void loop()
     if (prev_millis + check_docs_interval_ms > millis())
     {
       prev_millis = millis();
-      // request_doc_routine();
     }
   }
 }
