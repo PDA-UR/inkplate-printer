@@ -124,18 +124,18 @@ bool setup_storage()
 
   if (display.sdCardInit())
   {
-    USE_SERIAL.println("SD Card OK!");
+    USE_SERIAL.println("SD Card init ok!");
 
     SdFile root;
     USE_SERIAL.println("Checking " + PAGE_CHAIN_DIR);
-    if (root.open(PAGE_CHAIN_DIR.c_str(), O_RDWR | O_CREAT))
+    if (root.open("/", O_READ))
     {
-      USE_SERIAL.println("Page chain dir initialized");
+      USE_SERIAL.println("SD Card Accessible");
       root.close();
       return true;
     }
     else
-      USE_SERIAL.println("Failed to open root");
+      USE_SERIAL.println("Failed to open root dir of SD Card");
   }
   else
     USE_SERIAL.println("SD Card ERROR!");
@@ -294,16 +294,16 @@ bool load_config()
   JsonObject network = doc["network"];
   if (!network.isNull())
   {
-    JsonArray LOCAL_IP = network["localIp"].as<JsonArray>();
-    local_ip = parse_ip_json(&LOCAL_IP);
+    JsonArray LOCAL_IP = network["local_ip"].as<JsonArray>();
+    local_ip = parse_ip_json(LOCAL_IP);
     JsonArray GATEWAY = network["gateway"].as<JsonArray>();
-    gateway = parse_ip_json(&GATEWAY);
+    gateway = parse_ip_json(GATEWAY);
     JsonArray SUBNET = network["subnet"].as<JsonArray>();
-    subnet = parse_ip_json(&SUBNET);
+    subnet = parse_ip_json(SUBNET);
     JsonArray DNS1 = network["dns1"].as<JsonArray>();
-    dns1 = parse_ip_json(&DNS1);
+    dns1 = parse_ip_json(DNS1);
     JsonArray DNS2 = network["dns2"].as<JsonArray>();
-    dns2 = parse_ip_json(&DNS2);
+    dns2 = parse_ip_json(DNS2);
 
     // free up memeory
     LOCAL_IP.clear();
@@ -321,7 +321,7 @@ bool load_config()
     DISPLAY_WIDTH = display["width"].as<int>();
     DISPLAY_HEIGHT = display["height"].as<int>();
     DPI = display["dpi"].as<int>();
-    COLOR_DEPTH = display["colorDepth"].as<int>();
+    COLOR_DEPTH = display["color_depth"].as<int>();
   }
   else
     return false;
@@ -343,14 +343,14 @@ bool load_config()
   return true;
 }
 
-IPAddress parse_ip_json(JsonArray *ip)
+IPAddress parse_ip_json(JsonArray ip_array)
 {
-  if (ip->size() != 4)
+  if (ip_array.isNull() || ip_array.size() != 4)
   {
-    USE_SERIAL.println("Invalid IP address");
+    USE_SERIAL.println("Error parsing ip address");
     return IPAddress(0, 0, 0, 0);
   }
-  return IPAddress(ip[0], ip[1], ip[2], ip[3]);
+  return IPAddress(ip_array[0], ip_array[1], ip_array[2], ip_array[3]);
 }
 
 // ====================================================== //
@@ -420,7 +420,6 @@ bool load_state()
 
 bool save_state()
 {
-  // TODO: Save state to SD card
   USE_SERIAL.println("Saving State");
 
   // create json
@@ -507,6 +506,7 @@ uint8_t *download_page(int &page_num)
 void setup_wifi()
 {
   Serial.println("Setup: WiFi");
+
   WiFi.config(local_ip, gateway, subnet, dns1, dns2);
 
   WiFi.begin(SSID.c_str(), PASSWORD.c_str());
@@ -524,7 +524,7 @@ void setup_wifi()
 
 void socket_setup()
 {
-  socketIO.begin(HOST.c_str(), PORT, "/socket.io/?EIO=4");
+  socketIO.begin(HOST, PORT, "/socket.io/?EIO=4");
   socketIO.onEvent(on_socket_event);
 }
 
