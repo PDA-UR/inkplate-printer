@@ -326,20 +326,6 @@ bool load_config()
   else
     return false;
 
-  USE_SERIAL.println("Config loaded");
-  USE_SERIAL.println("SSID: " + SSID);
-  USE_SERIAL.println("HOST: " + HOST);
-  USE_SERIAL.println("PORT: " + String(PORT));
-  USE_SERIAL.println("DISPLAY_WIDTH: " + String(DISPLAY_WIDTH));
-  USE_SERIAL.println("DISPLAY_HEIGHT: " + String(DISPLAY_HEIGHT));
-  USE_SERIAL.println("DPI: " + String(DPI));
-  USE_SERIAL.println("COLOR_DEPTH: " + String(COLOR_DEPTH));
-  USE_SERIAL.println("local_ip: " + local_ip.toString());
-  USE_SERIAL.println("gateway: " + gateway.toString());
-  USE_SERIAL.println("subnet: " + subnet.toString());
-  USE_SERIAL.println("dns1: " + dns1.toString());
-  USE_SERIAL.println("dns2: " + dns2.toString());
-
   return true;
 }
 
