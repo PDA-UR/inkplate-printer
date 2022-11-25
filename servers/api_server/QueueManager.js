@@ -168,7 +168,6 @@ class QueueManager {
 			)}`,
 			"-dAutoRotatePages=/None",
 			"-sOutputFile=" + outDir + "%d.bmp",
-			// rotate inkplate pages 90 degrees
 			"-c",
 			device.isBrowser
 				? "<</Orientation 0>> setpagedevice"

@@ -116,6 +116,7 @@ export default class SocketController extends Observable {
 		wasSuccessful: boolean;
 	}): void => {
 		if (wasSuccessful) {
+			console.log("Registered successfully");
 			this.connectionStatus = ConnectionStatus.CONNECTED;
 			this.notifyAll(SocketController.REGISTERED_MESSAGE);
 		} else {
@@ -142,6 +143,7 @@ export default class SocketController extends Observable {
 	}: {
 		deviceIndex: number;
 	}): void => {
+		console.log("update device index", deviceIndex);
 		this.notifyAll(SocketController.UPDATE_DEVICE_INDEX_MESSAGE, deviceIndex);
 	};
 
