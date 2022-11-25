@@ -219,6 +219,22 @@ String get_page_filepath(int page_index)
   return filepath;
 }
 
+// ====================================================== //
+// ======================== State ======================= //
+// ====================================================== //
+
+bool state_file_exists()
+{
+  SdFile file;
+  if (file.open("state.json", O_RDWR))
+  {
+    file.close();
+    return true;
+  }
+  else
+    return false;
+}
+
 void load_state()
 {
   // TODO: Load state from SD card
@@ -293,6 +309,8 @@ void save_state()
     Serial.println("Error creating file!");
 }
 
+// ~~~~~~~~~~~~~~~~ Setter ~~~~~~~~~~~~~~~ //
+
 void set_page_index(int index)
 {
   page_index = index;
@@ -318,35 +336,9 @@ void set_display_mode(DisplayMode mode)
   save_state();
 }
 
-bool state_file_exists()
-{
-  SdFile file;
-  if (file.open("state.json", O_RDWR))
-  {
-    file.close();
-    return true;
-  }
-  else
-    return false;
-}
-
 // ====================================================== //
 // ======================= Network ====================== //
 // ====================================================== //
-
-uint8_t *download_page(int &page_num)
-{
-  USE_SERIAL.println("downloading page");
-  String url = String(HOST) + "api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
-  USE_SERIAL.println(url);
-
-  int len = DISPLAY_WIDTH * DISPLAY_HEIGHT; // display resolution
-  Serial.println("Downloading...");
-  uint8_t *downloaded_image = display.downloadFile(url.c_str(), &len);
-
-  Serial.println("image downloaded");
-  return downloaded_image;
-}
 
 void download_and_save_page(int page_index)
 {
@@ -354,11 +346,21 @@ void download_and_save_page(int page_index)
   if (img_buf != nullptr)
   {
     save_page(page_index, img_buf);
-    USE_SERIAL.println("Page saved, freeing memory");
     // free memory
     free(img_buf);
-    USE_SERIAL.printf("Free memory: %d", esp_get_free_heap_size());
   }
+}
+
+uint8_t *download_page(int &page_num)
+{
+  String url = String(HOST) + "api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
+
+  int len = DISPLAY_WIDTH * DISPLAY_HEIGHT; // display resolution
+  Serial.println("Downloading...");
+  uint8_t *downloaded_image = display.downloadFile(url.c_str(), &len);
+
+  Serial.println("Page downloaded!");
+  return downloaded_image;
 }
 
 // ====================================================== //
@@ -385,7 +387,8 @@ void setup_wifi()
 
 void socket_setup()
 {
-  socketIO.begin("192.168.2.104", 8000, "/socket.io/?EIO=4"); // TODO: Replace with config
+  // TODO: Replace with config data
+  socketIO.begin("192.168.2.104", 8000, "/socket.io/?EIO=4");
   socketIO.onEvent(on_socket_event);
 }
 
@@ -423,7 +426,6 @@ void send_example_message()
   send_message("example", &data);
 }
 
-// Register
 void send_register_message()
 {
   DynamicJsonDocument data(1024);
@@ -442,13 +444,11 @@ void send_register_message()
   send_message(REGISTER_MESSAGE, &data);
 }
 
-// Enqueue
 void send_enqueue_message()
 {
   send_message(ENQUEUE_MESSAGE, nullptr);
 }
 
-// Dequeue
 void send_dequeue_message()
 {
   send_message(DEQUEUE_MESSAGE, nullptr);
@@ -533,7 +533,6 @@ void handle_socket_messages(
     handle_pages_ready_message(data);
 }
 
-// Registered
 void handle_registered_message(DynamicJsonDocument data)
 {
   USE_SERIAL.println("Handling registered message");
@@ -541,7 +540,7 @@ void handle_registered_message(DynamicJsonDocument data)
   {
     USE_SERIAL.println("Registered successfully");
     is_registered = true;
-    handle_middle_tp_pressed(); // TODO: Remove
+    // handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
   }
   else
   {
@@ -550,7 +549,6 @@ void handle_registered_message(DynamicJsonDocument data)
   }
 }
 
-// Update device index
 void handle_update_device_index_message(DynamicJsonDocument data)
 {
   USE_SERIAL.print("Handling update device index message, new index:");
@@ -558,7 +556,6 @@ void handle_update_device_index_message(DynamicJsonDocument data)
   USE_SERIAL.println(device_index);
 }
 
-// Show page message
 void handle_show_page_message(DynamicJsonDocument data)
 {
   // TODO: Handle null / -1
@@ -580,10 +577,8 @@ void handle_pages_ready_message(DynamicJsonDocument data)
   USE_SERIAL.println(page_count);
   clear_stored_pages();
 
-  // Download the initial page
+  // Download the initial page & display it
   download_and_save_page(device_index);
-
-  // display it
   show_page(device_index);
 
   // Download the rest of the pages
@@ -592,10 +587,11 @@ void handle_pages_ready_message(DynamicJsonDocument data)
     if (i != device_index)
     {
       download_and_save_page(i);
-      socket_routine(); // necessary to avoid DC during long downloads
+      socket_routine(); // necessary to avoid DC during long downloads, doesn't work yet
     }
   }
 
+  USE_SERIAL.println("Downloaded all pages.");
   device_index = -1;
 }
 
@@ -610,13 +606,37 @@ bool show_page(int page_index)
 
   if (display.drawBitmapFromSd(filepath.c_str(), 0, 0, 0, 0))
   {
-    Serial.println("drawImage success");
     display.display();
     return true;
   }
   else
-    Serial.println("drawImage failed");
+    Serial.println("Failed to show page");
   return false;
+}
+
+void navigate_page(int page_change)
+{
+  int new_page_index = page_index + page_change;
+  if (new_page_index <= page_count && new_page_index > 0)
+  {
+    show_page(new_page_index);
+    set_page_index(new_page_index);
+    USE_SERIAL.println("Showing page " + page_index);
+  }
+  else
+  {
+    USE_SERIAL.printf("at page limit %d of %d \n", new_page_index, page_count);
+  }
+}
+
+void prev_page()
+{
+  navigate_page(-1);
+}
+
+void next_page()
+{
+  navigate_page(1);
 }
 
 // ====================================================== //
@@ -692,31 +712,6 @@ void handle_right_tp_pressed()
 {
   USE_SERIAL.println("RIGHT tp pressed");
   next_page();
-}
-
-void prev_page()
-{
-  navigate_page(-1);
-}
-
-void next_page()
-{
-  navigate_page(1);
-}
-
-void navigate_page(int page_change)
-{
-  int new_page_index = page_index + page_change;
-  if (new_page_index <= page_count && new_page_index > 0)
-  {
-    show_page(new_page_index);
-    set_page_index(new_page_index);
-    USE_SERIAL.println("Showing page " + page_index);
-  }
-  else
-  {
-    USE_SERIAL.printf("at page limit %d of %d \n", new_page_index, page_count);
-  }
 }
 
 void print_touchpad_status()
