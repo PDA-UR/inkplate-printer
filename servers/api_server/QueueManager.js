@@ -147,8 +147,9 @@ class QueueManager {
 		});
 	}
 
-	static #spawnConvertProcess = (filepath, device, outDir) =>
-		spawn("gs", [
+	static #spawnConvertProcess = (filepath, device, outDir) => {
+		console.log(filepath, outDir);
+		const job = spawn("gs", [
 			`-sDEVICE=${QueueManager.#getPrinterType(
 				device.isBrowser,
 				device.screenInfo.colorDepth
@@ -157,13 +158,26 @@ class QueueManager {
 			"-dBATCH",
 			"-dSAFER",
 			`-r${device.screenInfo.dpi}`, // inkplate = 145
-			// using the device screen res will cut off parts off the image, disabled for now
-			//`-g${device.screenInfo.resolution.width}x${device.screenInfo.resolution.height}`,
-			// "-g825x1200", // a4
-			"-dPDFFitPage",
+			`-dDEVICEWIDTHPOINTS=${QueueManager.pxToPoint(
+				device.screenInfo.resolution.width,
+				device.screenInfo.dpi
+			)}`,
+			`-dDEVICEHEIGHTPOINTS=${QueueManager.pxToPoint(
+				device.screenInfo.resolution.height,
+				device.screenInfo.dpi
+			)}`,
+			"-dAutoRotatePages=/None",
 			"-sOutputFile=" + outDir + "%d.bmp",
+			// rotate inkplate pages 90 degrees
+			"-c",
+			device.isBrowser
+				? "<</Orientation 0>> setpagedevice"
+				: "<</Orientation 1>> setpagedevice",
+			"-f",
 			filepath,
 		]);
+		return job;
+	};
 
 	static #getPrinterType = (isBrowser, colorDepth) => {
 		// for reference of available device types, see
@@ -193,6 +207,11 @@ class QueueManager {
 			devices.splice(device.index - 1, 0, device);
 		}
 		return devices;
+	};
+
+	static pxToPoint = (px, dpi) => {
+		const pt = px; // TODO: Caclulate pointsize
+		return pt;
 	};
 }
 

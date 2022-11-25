@@ -127,7 +127,7 @@ void setup_storage()
 void save_page(int &page_index, uint8_t *img_download_buffer)
 {
   SdFile file;
-  String bmp_filename = PAGE_CHAIN_DIR + get_page_filename(page_index);
+  String bmp_filename = get_page_filepath(page_index);
 
   // make sure file can be created, otherwise print error
 
@@ -144,6 +144,27 @@ void save_page(int &page_index, uint8_t *img_download_buffer)
     USE_SERIAL.println("Error opening bmp file");
 
   file.close();
+}
+
+uint8_t *get_page(int page_index)
+{
+  SdFile file;
+  String filepath = get_page_filepath(page_index);
+  uint8_t *img_buffer = NULL;
+
+  USE_SERIAL.println(filepath.c_str());
+
+  if (file.open(filepath.c_str(), O_READ))
+  {
+    int file_size = file.fileSize();
+    img_buffer = (uint8_t *)malloc(file_size);
+    file.read(img_buffer, file_size);
+  }
+  else
+    USE_SERIAL.println("Error opening bmp file");
+
+  file.close();
+  return img_buffer;
 }
 
 void clear_stored_pages()
@@ -189,6 +210,13 @@ String get_page_filename(int page_index)
   String filename = String(page_index) + ".bmp";
   USE_SERIAL.println("filename " + filename);
   return filename;
+}
+
+String get_page_filepath(int page_index)
+{
+  String filepath = PAGE_CHAIN_DIR + get_page_filename(page_index);
+  USE_SERIAL.println("filepath " + filepath);
+  return filepath;
 }
 
 void load_state()
@@ -524,7 +552,9 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 
   // Download the initial page
   download_and_save_page(device_index);
-  page_index = device_index;
+
+  // display it
+  show_page(device_index);
 
   // Download the rest of the pages
   for (int i = 1; i <= num_pages; i++)
@@ -540,8 +570,22 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 }
 
 // ====================================================== //
-// ====================== Document ====================== //
+// ====================== Display ======================= //
 // ====================================================== //
+
+void show_page(int page_index)
+{
+  USE_SERIAL.print("Showing page ");
+  String filepath = get_page_filepath(page_index);
+
+  if (display.drawBitmapFromSd(filepath.c_str(), 0, 0, 0, 0))
+  {
+    Serial.println("drawImage success");
+    display.display();
+  }
+  else
+    Serial.println("drawImage failed");
+}
 
 // ====================================================== //
 // ====================== Touchpads ===================== //
