@@ -138,9 +138,9 @@ bool setup_storage()
       USE_SERIAL.println("Failed to open root dir of SD Card");
   }
   else
-    USE_SERIAL.println("SD Card ERROR!");
+    USE_SERIAL.println("SD Card init ERROR!");
 
-  return true;
+  return false;
 }
 
 void save_page(int &page_index, uint8_t *img_download_buffer)
@@ -522,7 +522,7 @@ void setup_wifi()
 // ======================= Socket ======================= //
 // ====================================================== //
 
-void socket_setup()
+void setup_socket()
 {
   socketIO.begin(HOST, PORT, "/socket.io/?EIO=4");
   socketIO.onEvent(on_socket_event);
@@ -875,22 +875,29 @@ void setup()
   }
 
   display.begin();
-
-  setup_storage();
-  load_config();
-  load_state();
-
-  if (setup_storage() && load_config() && load_state())
+  if (!setup_storage())
   {
-    is_setup = true;
-    setup_wifi();
-    mac_addr = WiFi.macAddress();
-    socket_setup();
+    USE_SERIAL.println("Failed to setup storage");
+    return;
   }
-  else
+
+  if (!load_config())
   {
-    USE_SERIAL.println("Setup failed");
+    USE_SERIAL.println("Failed to load config");
+    return;
   }
+
+  if (!load_state())
+  {
+    USE_SERIAL.println("Failed to load state");
+    return;
+  }
+
+  setup_wifi();
+  mac_addr = WiFi.macAddress();
+  setup_socket();
+
+  is_setup = true;
 }
 
 void loop()
@@ -902,7 +909,7 @@ void loop()
   }
   else
   {
-    USE_SERIAL.println("Not setup, entering deep sleep");
+    USE_SERIAL.println("Error during setup, entering deep sleep");
     enter_deep_sleep();
   }
 }
