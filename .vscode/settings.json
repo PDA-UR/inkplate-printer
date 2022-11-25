@@ -1,6 +1,18 @@
 {
 	"files.associations": {
 		"string": "cpp",
-		"iterator": "cpp"
+		"iterator": "cpp",
+		"array": "cpp",
+		"associative_base": "cpp",
+		"bitset": "cpp",
+		"deque": "cpp",
+		"initializer_list": "cpp",
+		"list": "cpp",
+		"queue": "cpp",
+		"stack": "cpp",
+		"valarray": "cpp",
+		"vector": "cpp",
+		"string_view": "cpp",
+		"utility": "cpp"
 	}
 }

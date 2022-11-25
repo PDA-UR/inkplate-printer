@@ -10,12 +10,18 @@
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
 
-#include "config.h"
 #include "socket_messages.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
 // ##################################################################### //
+
+// ~~~~~~~~~~~~~ Definitions ~~~~~~~~~~~~~ //
+
+#define USE_SERIAL Serial
+#define formatBool(b) ((b) ? "true" : "false")
+
+Inkplate display(INKPLATE_3BIT);
 
 // ====================================================== //
 // ====================== Constants ===================== //
@@ -24,23 +30,34 @@
 // ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
 
 const String PAGE_CHAIN_DIR = "/page_chain/";
+const String CONFIG_FILE = "/config.json";
+const String STATE_FILE = "/state.json";
+
+// ~~~~~~~~~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~ //
+
+String SSID;
+String PASSWORD;
+String HOST;
+int PORT;
+
+IPAddress local_ip;
+IPAddress gateway;
+IPAddress subnet;
+IPAddress dns1;
+IPAddress dns2;
+
+// ~~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
+
+int DPI;
+int COLOR_DEPTH;
+int DISPLAY_WIDTH;
+int DISPLAY_HEIGHT;
 
 // ====================================================== //
 // ====================== Variables ===================== //
 // ====================================================== //
 
-// ~~~~~~~~~~~~~ Definitions ~~~~~~~~~~~~~ //
-
-#define USE_SERIAL Serial
-#define formatBool(b) ((b) ? "true" : "false")
-
-// ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
-
-Inkplate display(INKPLATE_3BIT);
-
-long prev_millis = 0;
-bool check_new_doc_while_idle = true;
-int check_docs_interval_ms = 30 * 1000;
+bool is_setup = false;
 
 // ~~~~~~~~~~~~~~ Touchpads ~~~~~~~~~~~~~~ //
 
@@ -62,7 +79,6 @@ enum TP_PRESSED
 
 int page_index = -1;
 int page_count = -1;
-char doc_name[255];
 
 // --------- Modes -------- //
 
@@ -101,7 +117,7 @@ void enter_deep_sleep()
 // ======================= Storage ====================== //
 // ====================================================== //
 
-void setup_storage()
+bool setup_storage()
 {
   // Init SD card. Display if SD card is init properly or not.
   USE_SERIAL.println("Setup: Storage");
@@ -116,12 +132,15 @@ void setup_storage()
     {
       USE_SERIAL.println("Page chain dir initialized");
       root.close();
+      return true;
     }
     else
       USE_SERIAL.println("Failed to open root");
   }
   else
     USE_SERIAL.println("SD Card ERROR!");
+
+  return true;
 }
 
 void save_page(int &page_index, uint8_t *img_download_buffer)
@@ -219,6 +238,121 @@ String get_page_filepath(int page_index)
   return filepath;
 }
 
+// ~~~~~~~~~~~~~~~~ Config ~~~~~~~~~~~~~~~ //
+
+String get_host_url()
+{
+  return "http://" + String(HOST) + ":" + String(PORT);
+}
+
+bool load_config()
+{
+  USE_SERIAL.println("Setup: Config");
+
+  File configFile;
+  if (!configFile.open(CONFIG_FILE.c_str(), O_READ))
+  {
+    USE_SERIAL.println("Failed to open config file");
+    return false;
+  }
+
+  size_t size = configFile.size();
+  if (size > 1024)
+  {
+    USE_SERIAL.println("Config file size is too large");
+    return false;
+  }
+
+  StaticJsonDocument<1024> doc;
+  DeserializationError error = deserializeJson(doc, configFile);
+  if (error)
+  {
+    USE_SERIAL.println("Failed to parse config file");
+    return false;
+  }
+
+  // get wifi sub property
+  JsonObject wifi = doc["wifi"];
+  if (!wifi.isNull())
+  {
+    SSID = wifi["ssid"].as<String>();
+    PASSWORD = wifi["password"].as<String>();
+  }
+  else
+    return false;
+
+  // get api sub property
+  JsonObject api = doc["api"];
+  if (!api.isNull())
+  {
+    HOST = api["host"].as<String>();
+    PORT = api["port"].as<int>();
+  }
+  else
+    return false;
+
+  JsonObject network = doc["network"];
+  if (!network.isNull())
+  {
+    JsonArray LOCAL_IP = network["localIp"].as<JsonArray>();
+    local_ip = parse_ip_json(&LOCAL_IP);
+    JsonArray GATEWAY = network["gateway"].as<JsonArray>();
+    gateway = parse_ip_json(&GATEWAY);
+    JsonArray SUBNET = network["subnet"].as<JsonArray>();
+    subnet = parse_ip_json(&SUBNET);
+    JsonArray DNS1 = network["dns1"].as<JsonArray>();
+    dns1 = parse_ip_json(&DNS1);
+    JsonArray DNS2 = network["dns2"].as<JsonArray>();
+    dns2 = parse_ip_json(&DNS2);
+
+    // free up memeory
+    LOCAL_IP.clear();
+    GATEWAY.clear();
+    SUBNET.clear();
+    DNS1.clear();
+    DNS2.clear();
+  }
+  else
+    return false;
+
+  JsonObject display = doc["display"];
+  if (!display.isNull())
+  {
+    DISPLAY_WIDTH = display["width"].as<int>();
+    DISPLAY_HEIGHT = display["height"].as<int>();
+    DPI = display["dpi"].as<int>();
+    COLOR_DEPTH = display["colorDepth"].as<int>();
+  }
+  else
+    return false;
+
+  USE_SERIAL.println("Config loaded");
+  USE_SERIAL.println("SSID: " + SSID);
+  USE_SERIAL.println("HOST: " + HOST);
+  USE_SERIAL.println("PORT: " + String(PORT));
+  USE_SERIAL.println("DISPLAY_WIDTH: " + String(DISPLAY_WIDTH));
+  USE_SERIAL.println("DISPLAY_HEIGHT: " + String(DISPLAY_HEIGHT));
+  USE_SERIAL.println("DPI: " + String(DPI));
+  USE_SERIAL.println("COLOR_DEPTH: " + String(COLOR_DEPTH));
+  USE_SERIAL.println("local_ip: " + local_ip.toString());
+  USE_SERIAL.println("gateway: " + gateway.toString());
+  USE_SERIAL.println("subnet: " + subnet.toString());
+  USE_SERIAL.println("dns1: " + dns1.toString());
+  USE_SERIAL.println("dns2: " + dns2.toString());
+
+  return true;
+}
+
+IPAddress parse_ip_json(JsonArray *ip)
+{
+  if (ip->size() != 4)
+  {
+    USE_SERIAL.println("Invalid IP address");
+    return IPAddress(0, 0, 0, 0);
+  }
+  return IPAddress(ip[0], ip[1], ip[2], ip[3]);
+}
+
 // ====================================================== //
 // ======================== State ======================= //
 // ====================================================== //
@@ -235,7 +369,7 @@ bool state_file_exists()
     return false;
 }
 
-void load_state()
+bool load_state()
 {
   // TODO: Load state from SD card
   USE_SERIAL.println("Loading State");
@@ -259,24 +393,32 @@ void load_state()
         // read state
         page_index = doc["page_index"];
         page_count = doc["page_count"];
-        strcpy(doc_name, doc["doc_name"]);
         display_mode = doc["display_mode"];
+
+        file.close();
+        return true;
       }
       else
+      {
         USE_SERIAL.println("State file read error");
-      file.close();
+        file.close();
+        return false;
+      }
     }
     else
+    {
       USE_SERIAL.println("Error opening state file!");
+      return false;
+    }
   }
   else
   {
     USE_SERIAL.println("State file does not exist, creating...");
-    save_state();
+    return save_state();
   }
 }
 
-void save_state()
+bool save_state()
 {
   // TODO: Save state to SD card
   USE_SERIAL.println("Saving State");
@@ -285,7 +427,6 @@ void save_state()
   StaticJsonDocument<200> doc;
   doc["page_index"] = page_index;
   doc["page_count"] = page_count;
-  doc["doc_name"] = doc_name;
   doc["display_mode"] = display_mode;
 
   // serialize json
@@ -304,9 +445,11 @@ void save_state()
     file.write(json.c_str(), json.length());
     file.flush();
     file.close();
+    return true;
   }
   else
     Serial.println("Error creating file!");
+  return false;
 }
 
 // ~~~~~~~~~~~~~~~~ Setter ~~~~~~~~~~~~~~~ //
@@ -321,12 +464,6 @@ void set_page_count(int count)
 {
   Serial.printf("Setting page count to %d \n", count);
   page_count = count;
-  save_state();
-}
-
-void set_doc_name(char *name)
-{
-  strcpy(doc_name, name);
   save_state();
 }
 
@@ -353,7 +490,7 @@ void download_and_save_page(int page_index)
 
 uint8_t *download_page(int &page_num)
 {
-  String url = String(HOST) + "api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
+  String url = get_host_url() + "/api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
 
   int len = DISPLAY_WIDTH * DISPLAY_HEIGHT; // display resolution
   Serial.println("Downloading...");
@@ -372,7 +509,7 @@ void setup_wifi()
   Serial.println("Setup: WiFi");
   WiFi.config(local_ip, gateway, subnet, dns1, dns2);
 
-  WiFi.begin(SSID, PASSWORD);
+  WiFi.begin(SSID.c_str(), PASSWORD.c_str());
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
@@ -387,8 +524,7 @@ void setup_wifi()
 
 void socket_setup()
 {
-  // TODO: Replace with config data
-  socketIO.begin("192.168.2.104", 8000, "/socket.io/?EIO=4");
+  socketIO.begin(HOST.c_str(), PORT, "/socket.io/?EIO=4");
   socketIO.onEvent(on_socket_event);
 }
 
@@ -731,7 +867,7 @@ void setup()
   USE_SERIAL.begin(115200);
   USE_SERIAL.setDebugOutput(true);
 
-  for (uint8_t t = 4; t > 0; t--)
+  for (uint8_t t = 2; t > 0; t--)
   {
     USE_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
     USE_SERIAL.flush();
@@ -741,27 +877,32 @@ void setup()
   display.begin();
 
   setup_storage();
-
+  load_config();
   load_state();
 
-  setup_wifi();
-  mac_addr = WiFi.macAddress();
-
-  socket_setup();
-
-  // enter_deep_sleep();
+  if (setup_storage() && load_config() && load_state())
+  {
+    is_setup = true;
+    setup_wifi();
+    mac_addr = WiFi.macAddress();
+    socket_setup();
+  }
+  else
+  {
+    USE_SERIAL.println("Setup failed");
+  }
 }
 
 void loop()
 {
-  touchpad_routine();
-  socket_routine();
-
-  if (check_new_doc_while_idle)
+  if (is_setup)
   {
-    if (prev_millis + check_docs_interval_ms > millis())
-    {
-      prev_millis = millis();
-    }
+    touchpad_routine();
+    socket_routine();
+  }
+  else
+  {
+    USE_SERIAL.println("Not setup, entering deep sleep");
+    enter_deep_sleep();
   }
 }

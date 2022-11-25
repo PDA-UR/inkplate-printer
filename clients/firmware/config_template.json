@@ -1,0 +1,17 @@
+{
+	"wifi": { "ssid": "TBMI", "password": "" },
+	"api": { "host": "192.168.2.104", "port": 8000 },
+	"network": {
+		"localIp": [192, 168, 2, 103],
+		"gateway": [192, 168, 2, 1],
+		"subnet": [255, 255, 255, 0],
+		"dns1": [1, 1, 1, 1],
+		"dns2": [1, 0, 0, 1]
+	},
+	"display": {
+		"dpi": 145,
+		"colorDepth": 4,
+		"width": 1200,
+		"height": 825
+	}
+}
