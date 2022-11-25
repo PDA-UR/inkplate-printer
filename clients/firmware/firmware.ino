@@ -48,7 +48,7 @@ bool touchpad_released = true;
 int touchpad_cooldown_ms = 1000;
 long touchpad_released_time = 0;
 
-enum
+enum TP_PRESSED
 {
   tp_none = 0,
   tp_left = 1,
@@ -66,7 +66,7 @@ char doc_name[255];
 
 // --------- Modes -------- //
 
-enum
+enum DisplayMode
 {
   blank = 0,
   displaying = 1,
@@ -244,6 +244,7 @@ void load_state()
         page_index = doc["page_index"];
         page_count = doc["page_count"];
         strcpy(doc_name, doc["doc_name"]);
+        display_mode = doc["display_mode"];
       }
       else
         USE_SERIAL.println("State file read error");
@@ -269,6 +270,7 @@ void save_state()
   doc["page_index"] = page_index;
   doc["page_count"] = page_count;
   doc["doc_name"] = doc_name;
+  doc["display_mode"] = display_mode;
 
   // serialize json
   String json;
@@ -289,6 +291,31 @@ void save_state()
   }
   else
     Serial.println("Error creating file!");
+}
+
+void set_page_index(int index)
+{
+  page_index = index;
+  save_state();
+}
+
+void set_page_count(int count)
+{
+  Serial.printf("Setting page count to %d \n", count);
+  page_count = count;
+  save_state();
+}
+
+void set_doc_name(char *name)
+{
+  strcpy(doc_name, name);
+  save_state();
+}
+
+void set_display_mode(DisplayMode mode)
+{
+  display_mode = mode;
+  save_state();
 }
 
 bool state_file_exists()
@@ -534,20 +561,23 @@ void handle_update_device_index_message(DynamicJsonDocument data)
 // Show page message
 void handle_show_page_message(DynamicJsonDocument data)
 {
+  // TODO: Handle null / -1
   USE_SERIAL.println("Handling show page message");
   int new_page_index = data["pageIndex"].as<int>();
-  USE_SERIAL.println(new_page_index);
 
-  page_index = new_page_index;
-  display_mode = displaying;
+  set_page_index(new_page_index);
+  set_display_mode(displaying);
+  save_state();
 }
 
 void handle_pages_ready_message(DynamicJsonDocument data)
 {
   USE_SERIAL.println("Handling pages ready message");
-  int num_pages = data["pageCount"].as<int>();
-  USE_SERIAL.println(num_pages);
+  int new_page_count = data["pageCount"].as<int>();
+  set_page_count(new_page_count);
+  set_page_index(device_index);
 
+  USE_SERIAL.println(page_count);
   clear_stored_pages();
 
   // Download the initial page
@@ -557,7 +587,7 @@ void handle_pages_ready_message(DynamicJsonDocument data)
   show_page(device_index);
 
   // Download the rest of the pages
-  for (int i = 1; i <= num_pages; i++)
+  for (int i = 1; i <= page_count; i++)
   {
     if (i != device_index)
     {
@@ -573,7 +603,7 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 // ====================== Display ======================= //
 // ====================================================== //
 
-void show_page(int page_index)
+bool show_page(int page_index)
 {
   USE_SERIAL.print("Showing page ");
   String filepath = get_page_filepath(page_index);
@@ -582,9 +612,11 @@ void show_page(int page_index)
   {
     Serial.println("drawImage success");
     display.display();
+    return true;
   }
   else
     Serial.println("drawImage failed");
+  return false;
 }
 
 // ====================================================== //
@@ -620,7 +652,6 @@ void touchpad_routine()
     break;
   case tp_right:
     handle_right_tp_pressed();
-    // handle_middle_tp_pressed();
     break;
   case tp_none:
     // no button pressed, ignore
@@ -665,36 +696,26 @@ void handle_right_tp_pressed()
 
 void prev_page()
 {
-  if (page_index <= 1)
-    return;
-
-  String page_name = String(doc_name) + "_" + (page_index - 1) + ".bmp";
-  if (display.drawImage(page_name, display.BMP, 0, 0))
-  {
-    page_index--;
-    display.display();
-  }
-  else
-  {
-    Serial.print("cannot get previous page with num");
-    Serial.println(page_index - 1);
-  }
+  navigate_page(-1);
 }
 
 void next_page()
 {
-  String page_name = String(doc_name) + "_" + (page_index + 1) + ".bmp";
-  if (display.drawImage(page_name, display.BMP, 0, 0))
+  navigate_page(1);
+}
+
+void navigate_page(int page_change)
+{
+  int new_page_index = page_index + page_change;
+  if (new_page_index <= page_count && new_page_index > 0)
   {
-    page_index++;
-    display.display();
+    show_page(new_page_index);
+    set_page_index(new_page_index);
+    USE_SERIAL.println("Showing page " + page_index);
   }
   else
   {
-    Serial.print("cannot get next page with num: ");
-    Serial.print(page_index + 1);
-    Serial.print(" for doc: ");
-    Serial.println(page_name);
+    USE_SERIAL.printf("at page limit %d of %d \n", new_page_index, page_count);
   }
 }
 
