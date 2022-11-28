@@ -11,12 +11,12 @@ export default class AccelerometerController extends Observable {
 	}
 
 	private onKeyDown = (event: KeyboardEvent) => {
-		if (event.key === "1") {
-			this.notifyAll(AccelerometerController.ON_PAIR_RIGHT);
-		} else if (event.key === "2") {
-			this.notifyAll(AccelerometerController.ON_PAIR_LEFT);
-		} else if (event.key === "3") {
-			this.notifyAll(AccelerometerController.ON_UNPAIR);
-		}
+		// if (event.key === "1") {
+		// 	this.notifyAll(AccelerometerController.ON_PAIR_RIGHT);
+		// } else if (event.key === "2") {
+		// 	this.notifyAll(AccelerometerController.ON_PAIR_LEFT);
+		// } else if (event.key === "3") {
+		// 	this.notifyAll(AccelerometerController.ON_UNPAIR);
+		// }
 	};
 }

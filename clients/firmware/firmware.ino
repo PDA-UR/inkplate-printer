@@ -540,7 +540,6 @@ void send_message(String name, DynamicJsonDocument *data)
   Serial.println(output);
 }
 
-// Example
 void send_example_message()
 {
   DynamicJsonDocument data(1024);
