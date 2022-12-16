@@ -14,5 +14,6 @@
 		"vector": "cpp",
 		"string_view": "cpp",
 		"utility": "cpp"
-	}
+	},
+	"inline-bookmarks.view.showVisibleFilesOnly": true
 }

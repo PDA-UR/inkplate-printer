@@ -168,10 +168,10 @@ class QueueManager {
 			)}`,
 			"-dAutoRotatePages=/None",
 			"-sOutputFile=" + outDir + "%d.bmp",
-			"-c",
-			device.isBrowser
-				? "<</Orientation 0>> setpagedevice"
-				: "<</Orientation 1>> setpagedevice",
+			// "-c",
+			// device.isBrowser
+			// 	? "<</Orientation 0>> setpagedevice"
+			// 	: "<</Orientation 1>> setpagedevice",
 			"-f",
 			filepath,
 		]);

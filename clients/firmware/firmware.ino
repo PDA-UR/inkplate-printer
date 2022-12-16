@@ -1,6 +1,10 @@
 #include <Arduino.h>
 
 #include "Inkplate.h"
+#include "./libraries/InkplateLibrary/Fonts/FreeMono9pt7b.h"
+#include "./libraries/InkplateLibrary/Fonts/FreeMonoBold12pt7b.h"
+#include "./libraries/InkplateLibrary/Fonts/FreeMono24pt7b.h"
+#include "./libraries/InkplateLibrary/Fonts/FreeMonoBold24pt7b.h"
 
 #include <ArduinoJson.h>
 #include "SdFat.h"
@@ -11,6 +15,10 @@
 #include <SocketIOclient.h>
 
 #include "socket_messages.h"
+#include "./icons/arrow_left_58.h"
+#include "./icons/arrow_right_58.h"
+#include "./icons/dequeue_58.h"
+#include "./icons/enqueue_58.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
@@ -27,11 +35,17 @@ Inkplate display(INKPLATE_3BIT);
 // ====================== Constants ===================== //
 // ====================================================== //
 
+const int AWAKE_TIME = 5; // seconds
+
 // ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
 
 const String PAGE_CHAIN_DIR = "/page_chain/";
 const String CONFIG_FILE = "/config.json";
 const String STATE_FILE = "/state.json";
+
+// ~~~~~~~~~~~~~~~~~ GUI ~~~~~~~~~~~~~~~~~ //
+const int ARROW_HEAD_HEIGHT = 25;
+const int ARROW_HEAD_WIDTH = 20;
 
 // ~~~~~~~~~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~ //
 
@@ -58,6 +72,10 @@ int DISPLAY_HEIGHT;
 // ====================================================== //
 
 bool is_setup = false;
+
+// ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
+
+int wake_up_timestamp = 0;
 
 // ~~~~~~~~~~~~~~ Touchpads ~~~~~~~~~~~~~~ //
 
@@ -105,11 +123,15 @@ boolean is_registered = false;
 // ======================= General ====================== //
 // ====================================================== //
 
+boolean do_go_to_sleep()
+{
+  return (millis() - wake_up_timestamp) > AWAKE_TIME * 1000;
+}
+
 void enter_deep_sleep()
 {
   Serial.println("Going to sleep");
-  delay(100);
-  esp_sleep_enable_timer_wakeup(15ll * 1000 * 1000);
+  hide_gui();
   esp_deep_sleep_start();
 }
 
@@ -318,8 +340,6 @@ bool load_config()
   JsonObject display = doc["display"];
   if (!display.isNull())
   {
-    DISPLAY_WIDTH = display["width"].as<int>();
-    DISPLAY_HEIGHT = display["height"].as<int>();
     DPI = display["dpi"].as<int>();
     COLOR_DEPTH = display["color_depth"].as<int>();
   }
@@ -674,7 +694,8 @@ void handle_update_device_index_message(DynamicJsonDocument data)
 {
   USE_SERIAL.print("Handling update device index message, new index:");
   device_index = data["deviceIndex"].as<int>();
-  USE_SERIAL.println(device_index);
+  draw_device_index_info();
+  display.display();
 }
 
 void handle_show_page_message(DynamicJsonDocument data)
@@ -700,7 +721,7 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 
   // Download the initial page & display it
   download_and_save_page(device_index);
-  show_page(device_index);
+  show_page(device_index, true);
 
   // Download the rest of the pages
   for (int i = 1; i <= page_count; i++)
@@ -720,19 +741,25 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 // ====================== Display ======================= //
 // ====================================================== //
 
-bool show_page(int page_index)
+bool show_page(int page_index, bool do_show_gui)
 {
   USE_SERIAL.print("Showing page ");
   String filepath = get_page_filepath(page_index);
 
   if (display.drawBitmapFromSd(filepath.c_str(), 0, 0, 0, 0))
-  {
-    display.display();
-    return true;
-  }
+    draw_page_index();
   else
+  {
     Serial.println("Failed to show page");
-  return false;
+    return false;
+  }
+
+  if (do_show_gui)
+    draw_gui();
+
+  display.display();
+
+  return true;
 }
 
 void navigate_page(int page_change)
@@ -740,7 +767,7 @@ void navigate_page(int page_change)
   int new_page_index = page_index + page_change;
   if (new_page_index <= page_count && new_page_index > 0)
   {
-    show_page(new_page_index);
+    show_page(new_page_index, true);
     set_page_index(new_page_index);
     USE_SERIAL.println("Showing page " + page_index);
   }
@@ -758,6 +785,103 @@ void prev_page()
 void next_page()
 {
   navigate_page(1);
+}
+
+void show_gui()
+{
+  show_page(page_index, true);
+}
+
+void hide_gui()
+{
+  show_page(page_index, false);
+}
+
+void draw_gui()
+{
+  draw_back_button();
+  draw_next_button();
+  draw_device_index_info();
+}
+
+void draw_page_index()
+{
+  USE_SERIAL.println("drawing page index");
+  String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
+  int cursor_x = 0;
+  int cursor_y = DISPLAY_WIDTH - 12;
+  const GFXfont *text1_font = &FreeMono9pt7b;
+  display.setFont(text1_font);
+  display.setTextColor(0, 7);
+  display.setTextSize(1);
+  display.setCursor(cursor_x, cursor_y);
+  display.print(page_info);
+}
+
+void draw_next_button()
+{
+  int icon_size = sizeof(arrow_right_icon);
+  display.drawJpegFromBuffer(arrow_right_icon, icon_size, 0, get_button_y(tp_right, 56), true, false);
+}
+
+void draw_back_button()
+{
+  int icon_size = sizeof(arrow_left_icon);
+  display.drawJpegFromBuffer(arrow_left_icon, icon_size, 0, get_button_y(tp_left, 56), true, false);
+}
+
+void draw_device_index_info()
+{
+  if (device_index == -1)
+  {
+    draw_enqueue_button();
+  }
+  else
+  {
+    draw_device_index();
+  }
+}
+
+void draw_device_index()
+{
+  USE_SERIAL.println("drawing index");
+  int icon_size = sizeof(enqueue_icon);
+  String device_index_string = device_index == -1 ? "0" : String(device_index);
+  int cursor_x = 4;
+  int cursor_y = get_button_y(tp_middle, 4);
+  const GFXfont *font = &FreeMono24pt7b;
+  display.setFont(font);
+  display.setTextColor(0, 7);
+  display.setTextSize(1);
+  display.setCursor(cursor_x, cursor_y);
+  display.print(device_index_string);
+}
+
+void draw_enqueue_button()
+{
+  USE_SERIAL.println("draw enqueue");
+  int icon_size = sizeof(enqueue_icon);
+  display.drawJpegFromBuffer(enqueue_icon, icon_size, 0, get_button_y(tp_middle, 56), true, false);
+}
+
+int get_button_spacing()
+{
+  return DISPLAY_WIDTH / 10 - 8; // dont ask me why
+}
+
+int get_button_y(TP_PRESSED button, int button_height)
+{
+  int middle_button_x = DISPLAY_WIDTH / 2;
+  int button_offset = button_height / 2;
+  switch (button)
+  {
+  case tp_left:
+    return middle_button_x - get_button_spacing() - button_offset;
+  case tp_right:
+    return middle_button_x + get_button_spacing() - button_offset;
+  default:
+    return middle_button_x - button_offset;
+  }
 }
 
 // ====================================================== //
@@ -817,6 +941,7 @@ void read_touchpads()
 void handle_left_tp_pressed()
 {
   USE_SERIAL.println("LEFT tp pressed");
+  draw_back_button();
   prev_page();
 }
 
@@ -824,9 +949,13 @@ void handle_middle_tp_pressed()
 {
   USE_SERIAL.println("MIDDLE tp pressed");
   if (device_index == -1)
+  {
     send_enqueue_message();
+  }
   else
+  {
     send_dequeue_message();
+  }
 }
 
 void handle_right_tp_pressed()
@@ -852,7 +981,19 @@ void setup()
   USE_SERIAL.begin(115200);
   USE_SERIAL.setDebugOutput(true);
 
+  wake_up_timestamp = millis();
+
+
   display.begin();
+
+  // display.setDisplayMode(INKPLATE_1BIT);
+
+  display.setRotation(3); // Portrait mode
+
+  DISPLAY_WIDTH = display.height(); // due to portrait mode
+  DISPLAY_HEIGHT = display.width();
+
+
   if (!setup_storage())
   {
     USE_SERIAL.println("Failed to setup storage");
@@ -875,15 +1016,29 @@ void setup()
   mac_addr = WiFi.macAddress();
   setup_socket();
 
+  show_gui();
   is_setup = true;
 }
 
+int last_socket_routine = 0;
+
 void loop()
 {
+  if (do_go_to_sleep())
+  {
+    enter_deep_sleep();
+    return;
+  }
+
   if (is_setup)
   {
     touchpad_routine();
-    socket_routine();
+    // run socket routine every 1s @todo find a better way to unblock loop
+    if (millis() - last_socket_routine > 50)
+    {
+      socket_routine();
+      last_socket_routine = millis();
+    }
   }
   else
   {
