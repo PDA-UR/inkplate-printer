@@ -3,12 +3,12 @@
 ## Must do
 
 - [ ] Improve performance of pagination
-  - [ ] BMP -> JPG
+  - [x] BMP -> JPG
 - [ ] Properly adjust page resolution
-- [ ] On screen indicators (e.g. connection, page number etc.)
-  - [ ] pagination
-  - [ ] enqueue
-  - [ ] page number
+- [x] On screen indicators (e.g. connection, page number etc.)
+  - [x] pagination
+  - [x] enqueue
+  - [x] page number
 - [ ] Fix printer server stability issues & implement paper error
 - [ ] Cleanup & Documentation
 
@@ -16,4 +16,3 @@
 
 - [x] Better touchpad sensitivity
 - [ ] Webapp offline mode
-- [ ] Accelerometer & pairing?
