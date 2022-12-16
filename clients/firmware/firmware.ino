@@ -17,7 +17,6 @@
 #include "socket_messages.h"
 #include "./icons/arrow_left_58.h"
 #include "./icons/arrow_right_58.h"
-#include "./icons/dequeue_58.h"
 #include "./icons/enqueue_58.h"
 
 // ##################################################################### //
@@ -983,7 +982,6 @@ void setup()
 
   wake_up_timestamp = millis();
 
-
   display.begin();
 
   // display.setDisplayMode(INKPLATE_1BIT);
@@ -992,7 +990,6 @@ void setup()
 
   DISPLAY_WIDTH = display.height(); // due to portrait mode
   DISPLAY_HEIGHT = display.width();
-
 
   if (!setup_storage())
   {
