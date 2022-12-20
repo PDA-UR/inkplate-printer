@@ -2,9 +2,9 @@
 
 ## Must do
 
-- [ ] Improve performance of pagination
+- [x] Improve performance of pagination
   - [x] BMP -> JPG
-- [ ] Properly adjust page resolution
+- [x] Properly adjust page resolution
 - [x] On screen indicators (e.g. connection, page number etc.)
   - [x] pagination
   - [x] enqueue

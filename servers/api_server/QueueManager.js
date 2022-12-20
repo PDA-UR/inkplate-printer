@@ -111,7 +111,7 @@ class QueueManager {
 	};
 
 	static #ps2bpm(filepath, device) {
-		console.log("Converting ps to bmp", filepath, device);
+		console.log("Converting ps to jpeg", filepath, device);
 		// TODO: use resolution
 		const serverHomePath = os.homedir() + "/.inkplate-printer",
 			imgPath = serverHomePath + "/img/",
@@ -149,44 +149,41 @@ class QueueManager {
 
 	static #spawnConvertProcess = (filepath, device, outDir) => {
 		console.log(filepath, outDir);
-		const job = spawn("gs", [
-			`-sDEVICE=${QueueManager.#getPrinterType(
-				device.isBrowser,
-				device.screenInfo.colorDepth
-			)}`,
-			"-dNOPAUSE",
-			"-dBATCH",
-			"-dSAFER",
-			`-r${device.screenInfo.dpi}`, // inkplate = 145
-			`-dDEVICEWIDTHPOINTS=${QueueManager.pxToPoint(
-				device.screenInfo.resolution.width,
-				device.screenInfo.dpi
-			)}`,
-			`-dDEVICEHEIGHTPOINTS=${QueueManager.pxToPoint(
-				device.screenInfo.resolution.height,
-				device.screenInfo.dpi
-			)}`,
-			"-dAutoRotatePages=/None",
-			"-sOutputFile=" + outDir + "%d.bmp",
-			// "-c",
-			// device.isBrowser
-			// 	? "<</Orientation 0>> setpagedevice"
-			// 	: "<</Orientation 1>> setpagedevice",
-			"-f",
-			filepath,
-		]);
-		return job;
-	};
 
-	static #getPrinterType = (isBrowser, colorDepth) => {
-		// for reference of available device types, see
-		// http://ccp14.cryst.bbk.ac.uk/ccp/web-mirrors/ghostscript/~ghost/doc/AFPL/devices.htm
-		if (isBrowser) {
-			if (colorDepth > 8) return "bmp16m"; // 24 bit
-			else if (colorDepth > 4) return "bmp256"; // 8 bit
-			else if (colorDepth === 4) return "bmp16"; // 4 bit
-		}
-		return "bmpgray"; // grayscale
+		const j = `SIZE="${device.width}x${device.height}"
+		FILENAME="${filepath}"
+		OUT_DIR="${outDir}"
+		DPI="${device.dpi ?? 300}"
+
+		echo "Clearing output directory"
+		rm -f "$OUT_DIR"/*
+		
+		echo "Converting PS -> JPEG"
+		
+		gs -sDEVICE=jpeg \
+		-dNOPAUSE \
+		-dBATCH \
+		-dSAFER \
+		-r"$DPI" \
+		-sOutputFile="$OUT_DIR/%d.jpeg" \
+		-f "$FILENAME"
+		
+		echo "Adjusting JPEG resolution"
+		
+		magick mogrify \
+		-density "$DPI" \
+		-quality 100 \
+		-gravity center \
+		-resize "$SIZE"\> \
+		-resize "$SIZE"\< \
+		-extent "$SIZE" \
+		-path "$OUT_DIR" \
+		"$OUT_DIR/*.jpeg*"`;
+
+		// execute the script
+
+		const job = spawn("bash", ["-c", j]);
+		return job;
 	};
 
 	static #onFileAdded = (filePath) => {

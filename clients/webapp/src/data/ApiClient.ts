@@ -7,7 +7,6 @@ export default class ApiClient {
 		}).toString();
 
 		console.log("Fetching page", pageIndex, "from", url + params);
-		// response if of type image/bmp
 		const response = await fetch(url + params);
 
 		if (response.status !== 200) {

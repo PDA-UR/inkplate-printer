@@ -34,17 +34,13 @@ Inkplate display(INKPLATE_3BIT);
 // ====================== Constants ===================== //
 // ====================================================== //
 
-const int AWAKE_TIME = 5; // seconds
+const int AWAKE_TIME = 60; // seconds
 
 // ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
 
 const String PAGE_CHAIN_DIR = "/page_chain/";
 const String CONFIG_FILE = "/config.json";
 const String STATE_FILE = "/state.json";
-
-// ~~~~~~~~~~~~~~~~~ GUI ~~~~~~~~~~~~~~~~~ //
-const int ARROW_HEAD_HEIGHT = 25;
-const int ARROW_HEAD_WIDTH = 20;
 
 // ~~~~~~~~~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~ //
 
@@ -247,7 +243,7 @@ int get_num_stored_pages()
 
 String get_page_filename(int page_index)
 {
-  String filename = String(page_index) + ".bmp";
+  String filename = String(page_index) + ".jpeg";
   USE_SERIAL.println("filename " + filename);
   return filename;
 }
@@ -745,7 +741,7 @@ bool show_page(int page_index, bool do_show_gui)
   USE_SERIAL.print("Showing page ");
   String filepath = get_page_filepath(page_index);
 
-  if (display.drawBitmapFromSd(filepath.c_str(), 0, 0, 0, 0))
+  if (display.drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0))
     draw_page_index();
   else
   {
@@ -798,17 +794,39 @@ void hide_gui()
 
 void draw_gui()
 {
+  draw_gui_bg();
   draw_back_button();
   draw_next_button();
   draw_device_index_info();
 }
 
+void draw_gui_bg()
+{
+  int padding = 4;
+  int border_width = 2;
+
+  int width = 56 + padding;
+  int height = get_button_y(tp_right, width) - get_button_y(tp_left, width) + 56 + padding;
+  int x = 0;
+  int y = get_button_y(tp_left, width);
+
+  // // black shadow
+  // display.fillRect(x, y + 4, width + 3, height, 0);
+
+  // black border
+  display.fillRect(x, y - border_width, width + border_width, height + border_width * 2, 0);
+  // white background
+  display.fillRect(x, y, width, height, 7);
+}
+
 void draw_page_index()
 {
+
   USE_SERIAL.println("drawing page index");
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
   int cursor_x = 0;
   int cursor_y = DISPLAY_WIDTH - 12;
+
   const GFXfont *text1_font = &FreeMono9pt7b;
   display.setFont(text1_font);
   display.setTextColor(0, 7);

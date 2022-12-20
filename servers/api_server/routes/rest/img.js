@@ -23,11 +23,11 @@ const route = {
 			res.setHeader("Content-Type", "image/bmp");
 			res.setHeader(
 				"Content-Disposition",
-				"attachment; filename=" + pageNum + ".bmp"
+				"attachment; filename=" + pageNum + ".jpeg"
 			);
 			res.send(bitmap);
 		} else {
-			res.setHeader("Content-Type", "image/bmp");
+			res.setHeader("Content-Type", "image/jpeg");
 			res.status(201);
 			res.send("");
 		}
@@ -38,7 +38,7 @@ const serverHomePath = os.homedir() + "/.inkplate-printer",
 	imgPath = serverHomePath + "/img";
 
 const getFilePath = (client_mac, page_num) => {
-	return imgPath + "/" + client_mac + "/" + page_num + ".bmp";
+	return imgPath + "/" + client_mac + "/" + page_num + ".jpeg";
 };
 
 const getBitmap = (filePath) => {
