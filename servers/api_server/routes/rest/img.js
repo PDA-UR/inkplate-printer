@@ -20,13 +20,18 @@ const route = {
 
 		if (bitmap) {
 			// send bmp as blob
-			res.setHeader("Content-Type", "image/bmp");
+			res.setHeader("Content-Type", "image/jpeg");
 			res.setHeader(
 				"Content-Disposition",
 				"attachment; filename=" + pageNum + ".jpeg"
 			);
+			// set file size header
+			console.log("len", bitmap.length);
+			res.setHeader("Content-Length", bitmap.length);
+
 			res.send(bitmap);
 		} else {
+			console.log("img not found");
 			res.setHeader("Content-Type", "image/jpeg");
 			res.status(201);
 			res.send("");
@@ -51,3 +56,5 @@ const getBitmap = (filePath) => {
 };
 
 module.exports = route;
+
+// 2899214 1431655767

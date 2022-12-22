@@ -23,6 +23,13 @@
 // ############################## Firmware ############################# //
 // ##################################################################### //
 
+// helper struct for image download that contains buffer and size
+struct ImageBuffer
+{
+  uint8_t *buffer;
+  int size;
+};
+
 // ~~~~~~~~~~~~~ Definitions ~~~~~~~~~~~~~ //
 
 #define USE_SERIAL Serial
@@ -34,7 +41,7 @@ Inkplate display(INKPLATE_3BIT);
 // ====================== Constants ===================== //
 // ====================================================== //
 
-const int AWAKE_TIME = 60; // seconds
+const int AWAKE_TIME = 600; // seconds
 
 // ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
 
@@ -75,7 +82,7 @@ int wake_up_timestamp = 0;
 // ~~~~~~~~~~~~~~ Touchpads ~~~~~~~~~~~~~~ //
 
 bool touchpad_released = true;
-int touchpad_cooldown_ms = 1000;
+int touchpad_cooldown_ms = 500;
 long touchpad_released_time = 0;
 
 enum TP_PRESSED
@@ -160,7 +167,7 @@ bool setup_storage()
   return false;
 }
 
-void save_page(int &page_index, uint8_t *img_download_buffer)
+void save_page(int &page_index, ImageBuffer *img)
 {
   SdFile file;
   String bmp_filename = get_page_filepath(page_index);
@@ -169,15 +176,24 @@ void save_page(int &page_index, uint8_t *img_download_buffer)
 
   USE_SERIAL.println(bmp_filename.c_str());
 
+  // create file
+
   if (file.open(bmp_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC))
   {
-    int file_size = READ32(img_download_buffer + 2);
+    // opened file
+    // clear contents
     file.truncate(0);
-    file.write(img_download_buffer, file_size);
+    file.seekSet(0);
+
+    USE_SERIAL.println("writing to file with size " + String(img->size));
+
+    file.write(img->buffer, img->size);
+    USE_SERIAL.println("write");
     file.flush();
+    USE_SERIAL.println("flush");
   }
   else
-    USE_SERIAL.println("Error opening bmp file");
+    USE_SERIAL.println("Error opening page file");
 
   file.close();
 }
@@ -479,25 +495,50 @@ void set_display_mode(DisplayMode mode)
 
 void download_and_save_page(int page_index)
 {
-  uint8_t *img_buf = download_page(page_index);
-  if (img_buf != nullptr)
+  USE_SERIAL.println("downloading page " + String(page_index));
+  ImageBuffer *img = download_page(page_index);
+
+  // if image size is 0, then there was an error
+  if (img != nullptr)
   {
-    save_page(page_index, img_buf);
+    USE_SERIAL.println("saving page " + String(page_index));
+    save_page(page_index, img);
     // free memory
-    free(img_buf);
+    free(img->buffer);
+    free(img);
   }
 }
 
-uint8_t *download_page(int &page_num)
+ImageBuffer *download_page(int &page_num)
 {
   String url = get_host_url() + "/api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
 
-  int len = DISPLAY_WIDTH * DISPLAY_HEIGHT; // display resolution
-  Serial.println("Downloading...");
-  uint8_t *downloaded_image = display.downloadFile(url.c_str(), &len);
+  // download the image via http request
+  HTTPClient http;
 
-  Serial.println("Page downloaded!");
-  return downloaded_image;
+  http.begin(url);
+  int httpCode = http.GET();
+  if (httpCode == HTTP_CODE_OK)
+  {
+    USE_SERIAL.println("Downloading image " + String(page_num));
+    int size = http.getSize();
+
+    // get stream
+    WiFiClient *stream = http.getStreamPtr();
+    // download image
+    uint8_t *buffer = display.downloadFile(stream, size);
+
+    http.end();
+
+    USE_SERIAL.println("Downloaded image");
+    return new ImageBuffer{buffer, size};
+  }
+  else
+  {
+    USE_SERIAL.println("Error downloading page " + String(page_num));
+    http.end();
+    return nullptr;
+  }
 }
 
 // ====================================================== //
@@ -1028,30 +1069,38 @@ void setup()
   }
 
   setup_wifi();
+  USE_SERIAL.println("Setup done: Wifi");
   mac_addr = WiFi.macAddress();
   setup_socket();
+  USE_SERIAL.println("Setup done: Socket");
 
   show_gui();
+
+  USE_SERIAL.println("Setup done.");
   is_setup = true;
+
+  USE_SERIAL.println("Call download.");
+  download_and_save_page(1);
 }
 
 int last_socket_routine = 0;
 
 void loop()
 {
-  if (do_go_to_sleep())
-  {
-    enter_deep_sleep();
-    return;
-  }
+  // if (do_go_to_sleep())
+  // {
+  //   enter_deep_sleep();
+  //   return;
+  // }
 
   if (is_setup)
   {
     touchpad_routine();
+    socket_routine();
     // run socket routine every 1s @todo find a better way to unblock loop
     if (millis() - last_socket_routine > 50)
     {
-      socket_routine();
+      // socket_routine();
       last_socket_routine = millis();
     }
   }

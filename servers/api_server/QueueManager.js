@@ -148,7 +148,7 @@ class QueueManager {
 	}
 
 	static #spawnConvertProcess = (filepath, device, outDir) => {
-		console.log(filepath, outDir);
+		console.log(device.width, device.height, filepath, outDir);
 
 		const j = `SIZE="${device.width}x${device.height}"
 		FILENAME="${filepath}"
