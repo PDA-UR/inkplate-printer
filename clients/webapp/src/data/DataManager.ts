@@ -18,7 +18,7 @@ export default class DataManager {
 	// ~~~~~~~~~~~ Page chain info ~~~~~~~~~~~ //
 
 	static async resetPageChainData() {
-		const pageChainInfo = await DataManager.getPageChainInfo();
+		const pageChainInfo = await this.getPageChainInfo();
 		if (pageChainInfo !== undefined) {
 			set("pageChain", undefined);
 			for (let i = 1; i < pageChainInfo.pageCount; i++) {
@@ -37,7 +37,7 @@ export default class DataManager {
 	}
 
 	static async hasPageChain(): Promise<boolean> {
-		const pageChainInfo = await DataManager.getPageChainInfo();
+		const pageChainInfo = await this.getPageChainInfo();
 		return pageChainInfo !== undefined;
 	}
 
@@ -54,9 +54,9 @@ export default class DataManager {
 	static async stepCurrentPageIndex(
 		doGoNext: boolean
 	): Promise<number | undefined> {
-		const currentPageIndex = await DataManager.getCurrentPageIndex();
+		const currentPageIndex = await this.getCurrentPageIndex();
 		if (currentPageIndex !== undefined) {
-			const pageChainInfo = await DataManager.getPageChainInfo();
+			const pageChainInfo = await this.getPageChainInfo();
 
 			const maxPageIndex =
 				pageChainInfo?.pageCount === undefined ? 0 : pageChainInfo?.pageCount;
@@ -66,7 +66,7 @@ export default class DataManager {
 				: currentPageIndex - 1;
 
 			if (newPageIndex > 0 && newPageIndex <= maxPageIndex) {
-				await DataManager.saveCurrentPageIndex(newPageIndex);
+				await this.saveCurrentPageIndex(newPageIndex);
 				return newPageIndex;
 			}
 		}
@@ -75,21 +75,29 @@ export default class DataManager {
 
 	// ~~~~~~~~~~~~~ Single pages ~~~~~~~~~~~~ //
 
-	static async getPage(pageIndex: number): Promise<PageModel | undefined> {
+	static async getPage(
+		pageIndex: number,
+		doOverride = false
+	): Promise<PageModel | undefined> {
+		console.log("Getting page: ", pageIndex);
 		const pageModel: PageModel | undefined = await get(
 			"page-" + pageIndex.toString()
 		);
-		if (pageModel === undefined || pageModel.image === undefined) {
+		if (
+			pageModel === undefined ||
+			pageModel.image === undefined ||
+			doOverride
+		) {
 			// try to download the page
 			try {
-				const uuid = await DataManager.getUUID();
+				const uuid = await this.getUUID();
 				const blobImage = await ApiClient.getPageImage(pageIndex, uuid!);
 				if (blobImage !== undefined) {
 					const pageModel: PageModel = {
 						index: pageIndex,
 						image: blobImage,
 					};
-					await DataManager.savePage(pageModel);
+					await this.savePage(pageModel);
 					return pageModel;
 				} else throw new Error("Image blob is undefined");
 			} catch (e) {
@@ -104,9 +112,9 @@ export default class DataManager {
 	}
 
 	static async getCurrentPage(): Promise<PageModel | undefined> {
-		const pageIndex = await DataManager.getCurrentPageIndex();
+		const pageIndex = await this.getCurrentPageIndex();
 		if (pageIndex !== undefined) {
-			return await DataManager.getPage(pageIndex);
+			return await this.getPage(pageIndex);
 		}
 		return undefined;
 	}
@@ -114,20 +122,26 @@ export default class DataManager {
 	// ~~~~~~~~~~~~ Multiple pages ~~~~~~~~~~~ //
 
 	static async getAllExceptCurrentPage(): Promise<PageModel[]> {
-		const pageIndex = await DataManager.getCurrentPageIndex();
+		const pageIndex = await this.getCurrentPageIndex();
+		console.log("Current page index: ", pageIndex);
 		if (pageIndex === undefined) {
 			return [];
 		}
-		const pageChainInfo = await DataManager.getPageChainInfo();
+		const pageChainInfo = await this.getPageChainInfo();
+		console.log("Page chain info: ", pageChainInfo);
 		if (pageChainInfo === undefined) {
 			return [];
 		}
 
 		const pages: PageModel[] = [];
-		for (let i = 1; i < pageChainInfo.pageCount; i++) {
+		for (let i = 1; i <= pageChainInfo.pageCount; i++) {
+			console.log("i: ", i, pageIndex);
 			if (i !== pageIndex) {
-				const pm = await DataManager.getPage(i);
+				console.log("i !== pageIndex, getting page");
+				const pm = await this.getPage(i, true);
 				if (pm) pages.push(pm);
+			} else {
+				console.log("i === pageIndex");
 			}
 		}
 		return pages;
@@ -142,8 +156,8 @@ export default class DataManager {
 	// ~~~~~~~~~ Initialization stuff ~~~~~~~~ //
 
 	static async load() {
-		if (!(await DataManager.dataStoreIsValid())) {
-			return await DataManager.init();
+		if (!(await this.dataStoreIsValid())) {
+			return await this.init();
 		}
 		return Promise.resolve();
 	}
@@ -151,11 +165,11 @@ export default class DataManager {
 	// initializes the data store
 	private static async init() {
 		const uuid = uuidv4();
-		await DataManager.saveUUID(uuid);
+		await this.saveUUID(uuid);
 	}
 
 	private static async dataStoreIsValid() {
-		const uuid = await DataManager.getUUID();
+		const uuid = await this.getUUID();
 		return uuid !== undefined;
 	}
 

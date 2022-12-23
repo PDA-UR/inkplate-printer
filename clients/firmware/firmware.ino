@@ -717,7 +717,7 @@ void handle_registered_message(DynamicJsonDocument data)
   {
     USE_SERIAL.println("Registered successfully");
     is_registered = true;
-    // handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
+    handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
   }
   else
   {
@@ -1080,7 +1080,7 @@ void setup()
   is_setup = true;
 
   USE_SERIAL.println("Call download.");
-  download_and_save_page(1);
+  // download_and_save_page(1);
 }
 
 int last_socket_routine = 0;

@@ -2,7 +2,9 @@ const fs = require("fs");
 const os = require("os");
 const chokidar = require("chokidar");
 const DeviceManager = require("./DeviceManager");
-const spawn = require("child_process").spawn;
+
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
 
 class QueueManager {
 	static QUEUE_FOLDER_PATH = require("path").join(
@@ -128,62 +130,47 @@ class QueueManager {
 		fs.mkdirSync(outDir, { recursive: true });
 
 		return new Promise((resolve, reject) => {
-			const process = QueueManager.#spawnConvertProcess(
+			QueueManager.#spawnConvertProcess(
 				filepath,
 				device,
-				outDir
+				outDir,
+				(error, stdout, stderr) => {
+					if (error) {
+						console.log(`error: ${error.message}`);
+						reject(error);
+						return;
+					}
+					if (stderr) {
+						console.log(`stderr: ${stderr}`);
+						reject(stderr);
+						return;
+					}
+					// if complete code
+					if (stdout) {
+						console.log(`stdout: ${stdout}`);
+						if (stdout.includes("done")) {
+							const files = fs.readdirSync(outDir);
+							console.log("done", files.length);
+							resolve(files.length);
+						}
+					}
+				}
 			);
-
-			process.stdout.on("data", (data) => {
-				console.log("gs: " + data);
-			});
-
-			process.on("exit", () => {
-				const numFiles = fs.readdirSync(outDir).length;
-				console.log("gs: " + numFiles + " files created");
-				resolve(numFiles);
-			});
-			process.on("error", (error) => reject(error));
 		});
 	}
 
-	static #spawnConvertProcess = (filepath, device, outDir) => {
-		console.log(device.width, device.height, filepath, outDir);
-
-		const j = `SIZE="${device.width}x${device.height}"
-		FILENAME="${filepath}"
-		OUT_DIR="${outDir}"
-		DPI="${device.dpi ?? 300}"
-
-		echo "Clearing output directory"
-		rm -f "$OUT_DIR"/*
-		
-		echo "Converting PS -> JPEG"
-		
-		gs -sDEVICE=jpeg \
-		-dNOPAUSE \
-		-dBATCH \
-		-dSAFER \
-		-r"$DPI" \
-		-sOutputFile="$OUT_DIR/%d.jpeg" \
-		-f "$FILENAME"
-		
-		echo "Adjusting JPEG resolution"
-		
-		magick mogrify \
-		-density "$DPI" \
-		-quality 100 \
-		-gravity center \
-		-resize "$SIZE"\> \
-		-resize "$SIZE"\< \
-		-extent "$SIZE" \
-		-path "$OUT_DIR" \
-		"$OUT_DIR/*.jpeg*"`;
-
-		// execute the script
-
-		const job = spawn("bash", ["-c", j]);
-		return job;
+	static #spawnConvertProcess = (filepath, device, outDir, cb) => {
+		let { width, height } = device.screenInfo.resolution;
+		// if browser
+		if (device.isBrowser) {
+			width = width * 2;
+			height = height * 2;
+		}
+		const o = outDir.substring(0, outDir.length - 1);
+		const j = `./scripts/convert.sh ${width} ${height} "${filepath}" "${o}"`;
+		console.log("Executing", j);
+		const process = exec(j, cb);
+		return process;
 	};
 
 	static #onFileAdded = (filePath) => {
