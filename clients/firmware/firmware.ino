@@ -866,7 +866,7 @@ void draw_page_index()
   USE_SERIAL.println("drawing page index");
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
   int cursor_x = 0;
-  int cursor_y = DISPLAY_WIDTH - 12;
+  int cursor_y = DISPLAY_HEIGHT - 12;
 
   const GFXfont *text1_font = &FreeMono9pt7b;
   display.setFont(text1_font);
@@ -924,12 +924,12 @@ void draw_enqueue_button()
 
 int get_button_spacing()
 {
-  return DISPLAY_WIDTH / 10 - 8; // dont ask me why
+  return DISPLAY_HEIGHT / 10 - 8; // dont ask me why
 }
 
 int get_button_y(TP_PRESSED button, int button_height)
 {
-  int middle_button_x = DISPLAY_WIDTH / 2;
+  int middle_button_x = DISPLAY_HEIGHT / 2;
   int button_offset = button_height / 2;
   switch (button)
   {
@@ -1047,8 +1047,10 @@ void setup()
 
   display.setRotation(3); // Portrait mode
 
-  DISPLAY_WIDTH = display.height(); // due to portrait mode
-  DISPLAY_HEIGHT = display.width();
+  DISPLAY_WIDTH = display.width(); // due to portrait mode
+  DISPLAY_HEIGHT = display.height();
+
+  USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
 
   if (!setup_storage())
   {
