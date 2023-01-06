@@ -1,6 +1,6 @@
 const fs = require("fs");
-const key = fs.readFileSync("./ssl/key.pem");
-const cert = fs.readFileSync("./ssl/cert.pem");
+//const key = fs.readFileSync("./ssl/key.pem");
+//const cert = fs.readFileSync("./ssl/cert.pem");
 
 const express = require("express");
 const app = express();

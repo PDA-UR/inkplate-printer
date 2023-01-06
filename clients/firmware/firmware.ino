@@ -641,7 +641,20 @@ void on_socket_event(socketIOmessageType_t type, uint8_t *payload, size_t length
   {
   case sIOtype_DISCONNECT:
     USE_SERIAL.printf("[IOc] Disconnected!\n");
-    is_registered = false;
+    if (is_registered)
+    {
+      // set unregistered
+      is_registered = false;
+      draw_connection_status();
+      if (device_index != -1)
+      {
+        // reset device index
+        device_index = -1;
+        draw_device_index_info();
+      }
+      display.display();
+    }
+
     break;
   case sIOtype_CONNECT:
     USE_SERIAL.printf("[IOc] Connected to url: %s\n", payload);
@@ -717,6 +730,8 @@ void handle_registered_message(DynamicJsonDocument data)
   {
     USE_SERIAL.println("Registered successfully");
     is_registered = true;
+    draw_connection_status();
+    display.display();
     handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
   }
   else
@@ -862,18 +877,29 @@ void draw_gui_bg()
 
 void draw_page_index()
 {
-
   USE_SERIAL.println("drawing page index");
-  String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
+
   int cursor_x = 0;
   int cursor_y = DISPLAY_HEIGHT - 12;
+
+  // white bg
+  display.fillRect(cursor_x, cursor_y - 12, DISPLAY_WIDTH, 12 * 2, 7);
+
+  String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
+  String connection_status = is_registered ? "Connected" : "Disconnected";
+  String info = page_info + " " + connection_status;
 
   const GFXfont *text1_font = &FreeMono9pt7b;
   display.setFont(text1_font);
   display.setTextColor(0, 7);
   display.setTextSize(1);
   display.setCursor(cursor_x, cursor_y);
-  display.print(page_info);
+  display.print(info);
+}
+
+void draw_connection_status()
+{
+  draw_page_index();
 }
 
 void draw_next_button()
@@ -903,10 +929,19 @@ void draw_device_index_info()
 void draw_device_index()
 {
   USE_SERIAL.println("drawing index");
+
+  // white bg
+  int bg_x = 0;
+  int bg_y = get_button_y(tp_middle, 56);
+  display.fillRect(bg_x, bg_y, 56, 56, 7);
+
+  // index number
   int icon_size = sizeof(enqueue_icon);
   String device_index_string = device_index == -1 ? "0" : String(device_index);
-  int cursor_x = 4;
-  int cursor_y = get_button_y(tp_middle, 4);
+  int cursor_x = 6;
+  if (page_index < 10)
+    cursor_x += 9; // center it if its only 1 char
+  int cursor_y = get_button_y(tp_middle, 0) + 7;
   const GFXfont *font = &FreeMono24pt7b;
   display.setFont(font);
   display.setTextColor(0, 7);

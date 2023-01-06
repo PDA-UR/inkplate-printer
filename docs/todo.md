@@ -11,6 +11,9 @@
   - [x] page number
 - [ ] Fix printer server stability issues & implement paper error
 - [ ] Cleanup & Documentation
+- [ ] UUID on SD-Card
+- [ ] Fix pagination lag
+- [ ] Fix sleep button (not working)
 
 ## Nice to have
 
