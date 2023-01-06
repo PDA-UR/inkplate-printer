@@ -18,6 +18,7 @@
 #include "./icons/arrow_left_58.h"
 #include "./icons/arrow_right_58.h"
 #include "./icons/enqueue_58.h"
+#include "./icons/hourglass_58.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
@@ -815,15 +816,21 @@ bool show_page(int page_index, bool do_show_gui)
 
 void navigate_page(int page_change)
 {
+  draw_loading_icon(page_change > 0 ? tp_right : tp_left);
+  display.display();
+
   int new_page_index = page_index + page_change;
   if (new_page_index <= page_count && new_page_index > 0)
   {
-    show_page(new_page_index, true);
     set_page_index(new_page_index);
+    draw_gui();
+    show_page(new_page_index, true);
     USE_SERIAL.println("Showing page " + page_index);
   }
   else
   {
+    draw_gui();
+    display.display();
     USE_SERIAL.printf("at page limit %d of %d \n", new_page_index, page_count);
   }
 }
@@ -873,6 +880,25 @@ void draw_gui_bg()
   display.fillRect(x, y - border_width, width + border_width, height + border_width * 2, 0);
   // white background
   display.fillRect(x, y, width, height, 7);
+}
+
+void draw_loading_icon(TP_PRESSED tp)
+{
+  int icon_size = sizeof(hourglass_icon);
+  switch (tp)
+  {
+  case tp_left:
+    display.drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_left, 56), true, false);
+    break;
+
+  case tp_right:
+    display.drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_right, 56), true, false);
+    break;
+
+  case tp_middle:
+    display.drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_middle, 56), true, false);
+    break;
+  }
 }
 
 void draw_page_index()
@@ -1034,7 +1060,6 @@ void read_touchpads()
 void handle_left_tp_pressed()
 {
   USE_SERIAL.println("LEFT tp pressed");
-  draw_back_button();
   prev_page();
 }
 
@@ -1133,11 +1158,11 @@ void loop()
   if (is_setup)
   {
     touchpad_routine();
-    socket_routine();
+    // socket_routine();
     // run socket routine every 1s @todo find a better way to unblock loop
     if (millis() - last_socket_routine > 50)
     {
-      // socket_routine();
+      socket_routine();
       last_socket_routine = millis();
     }
   }

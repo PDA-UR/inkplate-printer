@@ -30,3 +30,5 @@ gs -sDEVICE=jpeg \
 -sOutputFile="$OUT_DIR/%d.jpeg" \
 -dAutoRotatePages=/None \
 -f "$FILENAME"
+
+echo "done"
