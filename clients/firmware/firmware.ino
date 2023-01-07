@@ -43,6 +43,8 @@ Inkplate display(INKPLATE_3BIT);
 // ====================================================== //
 
 const int AWAKE_TIME = 600; // seconds
+const int C_BLACK = 1;
+const int C_WHITE = 0;
 
 // ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
 
@@ -653,7 +655,7 @@ void on_socket_event(socketIOmessageType_t type, uint8_t *payload, size_t length
         device_index = -1;
         draw_device_index_info();
       }
-      display.display();
+      refresh_display();
     }
 
     break;
@@ -732,7 +734,7 @@ void handle_registered_message(DynamicJsonDocument data)
     USE_SERIAL.println("Registered successfully");
     is_registered = true;
     draw_connection_status();
-    display.display();
+    refresh_display();
     handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
   }
   else
@@ -747,7 +749,7 @@ void handle_update_device_index_message(DynamicJsonDocument data)
   USE_SERIAL.print("Handling update device index message, new index:");
   device_index = data["deviceIndex"].as<int>();
   draw_device_index_info();
-  display.display();
+  refresh_display();
 }
 
 void handle_show_page_message(DynamicJsonDocument data)
@@ -793,6 +795,11 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 // ====================== Display ======================= //
 // ====================================================== //
 
+void refresh_display()
+{
+  display.partialUpdate();
+}
+
 bool show_page(int page_index, bool do_show_gui)
 {
   USE_SERIAL.print("Showing page ");
@@ -809,7 +816,7 @@ bool show_page(int page_index, bool do_show_gui)
   if (do_show_gui)
     draw_gui();
 
-  display.display();
+  refresh_display();
 
   return true;
 }
@@ -817,7 +824,7 @@ bool show_page(int page_index, bool do_show_gui)
 void navigate_page(int page_change)
 {
   draw_loading_icon(page_change > 0 ? tp_right : tp_left);
-  display.display();
+  refresh_display();
 
   int new_page_index = page_index + page_change;
   if (new_page_index <= page_count && new_page_index > 0)
@@ -830,7 +837,7 @@ void navigate_page(int page_change)
   else
   {
     draw_gui();
-    display.display();
+    refresh_display();
     USE_SERIAL.printf("at page limit %d of %d \n", new_page_index, page_count);
   }
 }
@@ -873,13 +880,10 @@ void draw_gui_bg()
   int x = 0;
   int y = get_button_y(tp_left, width);
 
-  // // black shadow
-  // display.fillRect(x, y + 4, width + 3, height, 0);
-
   // black border
-  display.fillRect(x, y - border_width, width + border_width, height + border_width * 2, 0);
+  display.fillRect(x, y - border_width, width + border_width, height + border_width * 2, C_BLACK);
   // white background
-  display.fillRect(x, y, width, height, 7);
+  display.fillRect(x, y, width, height, C_WHITE);
 }
 
 void draw_loading_icon(TP_PRESSED tp)
@@ -909,7 +913,7 @@ void draw_page_index()
   int cursor_y = DISPLAY_HEIGHT - 12;
 
   // white bg
-  display.fillRect(cursor_x, cursor_y - 12, DISPLAY_WIDTH, 12 * 2, 7);
+  display.fillRect(cursor_x, cursor_y - 12, DISPLAY_WIDTH, 12 * 2, C_WHITE);
 
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
   String connection_status = is_registered ? "Connected" : "Disconnected";
@@ -917,7 +921,7 @@ void draw_page_index()
 
   const GFXfont *text1_font = &FreeMono9pt7b;
   display.setFont(text1_font);
-  display.setTextColor(0, 7);
+  display.setTextColor(1, C_BLACK);
   display.setTextSize(1);
   display.setCursor(cursor_x, cursor_y);
   display.print(info);
@@ -959,7 +963,7 @@ void draw_device_index()
   // white bg
   int bg_x = 0;
   int bg_y = get_button_y(tp_middle, 56);
-  display.fillRect(bg_x, bg_y, 56, 56, 7);
+  display.fillRect(bg_x, bg_y, 56, 56, C_WHITE);
 
   // index number
   int icon_size = sizeof(enqueue_icon);
@@ -970,7 +974,7 @@ void draw_device_index()
   int cursor_y = get_button_y(tp_middle, 0) + 7;
   const GFXfont *font = &FreeMono24pt7b;
   display.setFont(font);
-  display.setTextColor(0, 7);
+  display.setTextColor(0, C_BLACK);
   display.setTextSize(1);
   display.setCursor(cursor_x, cursor_y);
   display.print(device_index_string);
@@ -1102,8 +1106,9 @@ void setup()
   wake_up_timestamp = millis();
 
   display.begin();
+  // display.selectDisplayMode(INKPLATE_1BIT);
 
-  // display.setDisplayMode(INKPLATE_1BIT);
+  display.setDisplayMode(INKPLATE_1BIT);
 
   display.setRotation(3); // Portrait mode
 
