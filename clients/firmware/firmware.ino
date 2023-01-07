@@ -78,6 +78,7 @@ int DISPLAY_HEIGHT;
 // ====================================================== //
 
 bool is_setup = false;
+bool is_downloading = false;
 
 // ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
 
@@ -758,7 +759,7 @@ void handle_registered_message(DynamicJsonDocument data)
     is_registered = true;
     draw_connection_status();
     refresh_display();
-    handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
+    // handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
   }
   else
   {
@@ -793,6 +794,10 @@ void handle_pages_ready_message(DynamicJsonDocument data)
   set_page_count(new_page_count);
   set_page_index(device_index);
 
+  is_downloading = true;
+  draw_loading_icon(tp_middle);
+  refresh_display();
+
   USE_SERIAL.println(page_count);
   clear_stored_pages();
 
@@ -812,6 +817,9 @@ void handle_pages_ready_message(DynamicJsonDocument data)
 
   USE_SERIAL.println("Downloaded all pages.");
   device_index = -1;
+  is_downloading = false;
+  draw_gui();
+  refresh_display();
 }
 
 // ====================================================== //
@@ -970,7 +978,11 @@ void draw_back_button()
 
 void draw_device_index_info()
 {
-  if (device_index == -1)
+  if (is_downloading)
+  {
+    draw_loading_icon(tp_middle);
+  }
+  else if (device_index == -1)
   {
     draw_enqueue_button();
   }
@@ -1142,7 +1154,7 @@ void setup()
 
   USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
 
-  draw_status_bar();  
+  draw_status_bar();
 
   if (!setup_storage())
   {

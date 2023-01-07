@@ -1,15 +1,17 @@
 const fs = require("fs");
-//const key = fs.readFileSync("./ssl/key.pem");
-//const cert = fs.readFileSync("./ssl/cert.pem");
+const key = fs.readFileSync("./ssl/key.pem");
+const cert = fs.readFileSync("./ssl/cert.pem");
 
 const express = require("express");
 const app = express();
 const https = require("https");
 const http = require("http");
-const server = http.createServer(app);
+const httpExpress = http.createServer(app);
+const httpsExpress = https.createServer({ key, cert }, app);
 const glob = require("glob");
 const { Server } = require("socket.io");
-const io = new Server(server);
+const httpSocketIo = new Server(httpExpress);
+const httpsSocketIo = new Server(httpsExpress);
 const DeviceManager = require("./DeviceManager");
 const QueueManager = require("./QueueManager");
 const PairingManager = require("./PairingManager");
@@ -21,12 +23,15 @@ initSocketRouteHandlers()
 	.then(() => initRestRouteHandlers())
 	.then(() => {
 		QueueManager.init();
-		startExpress();
-		startSocketIO();
+		startExpress(httpExpress, 8001);
+		startSocketIO(httpSocketIo);
+
+		startExpress(httpsExpress, 8000);
+		startSocketIO(httpsSocketIo);
 	});
 
 // Starts the express server (HTTP)
-function startExpress() {
+function startExpress(server, port) {
 	app.get(
 		"/",
 		(webapp = (req, res) => {
@@ -50,8 +55,8 @@ function startExpress() {
 	// serve static files in public/ under /
 	app.use(express.static("public"));
 
-	server.listen(8000, () => {
-		console.log("listening on *:8000");
+	server.listen(port, () => {
+		console.log("listening on *:", port);
 	});
 
 	if (process.env.NODE_ENV === "development") {
@@ -67,8 +72,8 @@ function startExpress() {
 }
 
 // Starts the socket.io server
-function startSocketIO() {
-	io.on("connection", (socket) => {
+function startSocketIO(server) {
+	server.on("connection", (socket) => {
 		for (const [message, callback] of socketRouteHandlers) {
 			socket.on(message, (e) => callback(socket, e));
 		}

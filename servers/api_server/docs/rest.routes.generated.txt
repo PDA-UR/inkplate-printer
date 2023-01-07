@@ -16,4 +16,20 @@ router
  ├── bound dispatch                                /api/img                                                    GET
  │    └── on                                       /                                                           GET
  │   
+ ├── serveStatic                                   *                                                           
+ ├── bound dispatch                                /                                                           GET
+ │    └── webapp                                   /                                                           GET
+ │   
+ ├── bound dispatch                                /cert                                                       GET
+ │    └── on                                       /                                                           GET
+ │   
+ ├── bound dispatch                                /api/dev                                                    GET
+ │    └── on                                       /                                                           GET
+ │   
+ ├── bound dispatch                                /api/example                                                GET
+ │    └── on                                       /                                                           GET
+ │   
+ ├── bound dispatch                                /api/img                                                    GET
+ │    └── on                                       /                                                           GET
+ │   
  └── serveStatic                                   *                                                           
