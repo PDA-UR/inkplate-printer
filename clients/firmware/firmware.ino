@@ -42,7 +42,8 @@ Inkplate display(INKPLATE_3BIT);
 // ====================== Constants ===================== //
 // ====================================================== //
 
-const int AWAKE_TIME = 600; // seconds
+const int AWAKE_TIME = 600;            // seconds
+const int WIFI_CONNECTION_TIMEOUT = 4; // seconds
 const int C_BLACK = 1;
 const int C_WHITE = 0;
 
@@ -119,7 +120,7 @@ int pairing_index = -1;
 
 // ~~~~~~~~~~~~~~~ Network ~~~~~~~~~~~~~~~ //
 
-String mac_addr;
+String device_id;
 SocketIOclient socketIO;
 
 boolean is_registered = false;
@@ -133,10 +134,11 @@ boolean do_go_to_sleep()
   return (millis() - wake_up_timestamp) > AWAKE_TIME * 1000;
 }
 
-void enter_deep_sleep()
+void enter_deep_sleep(bool do_hide_gui)
 {
   Serial.println("Going to sleep");
-  hide_gui();
+  if (do_hide_gui)
+    hide_gui();
   esp_deep_sleep_start();
 }
 
@@ -316,6 +318,15 @@ bool load_config()
   }
   else
     return false;
+
+  // get id property
+  String id = doc["id"].as<String>();
+  if (id != "null")
+    device_id = id;
+  else
+    return false;
+
+  USE_SERIAL.println(id);
 
   // get api sub property
   JsonObject api = doc["api"];
@@ -514,7 +525,7 @@ void download_and_save_page(int page_index)
 
 ImageBuffer *download_page(int &page_num)
 {
-  String url = get_host_url() + "/api/img" + "?client=" + mac_addr + "&page_num=" + page_num;
+  String url = get_host_url() + "/api/img" + "?client=" + device_id + "&page_num=" + page_num;
 
   // download the image via http request
   HTTPClient http;
@@ -550,17 +561,25 @@ ImageBuffer *download_page(int &page_num)
 
 void setup_wifi()
 {
+  int setup_begin = millis();
   Serial.println("Setup: WiFi");
 
   WiFi.config(local_ip, gateway, subnet, dns1, dns2);
 
   WiFi.begin(SSID.c_str(), PASSWORD.c_str());
-  while (WiFi.status() != WL_CONNECTED)
+  while (!is_wifi_connected() && millis() - setup_begin < WIFI_CONNECTION_TIMEOUT * 1000)
   {
-    delay(500);
+    delay(250);
     Serial.print(".");
   }
-  Serial.println("Setup: WiFi connected");
+
+  draw_status_bar(); // TODO: Remove?
+  Serial.println("Setup: WiFi complete");
+}
+
+bool is_wifi_connected()
+{
+  return WiFi.status() == WL_CONNECTED;
 }
 
 // ====================================================== //
@@ -569,13 +588,17 @@ void setup_wifi()
 
 void setup_socket()
 {
-  socketIO.begin(HOST, PORT, "/socket.io/?EIO=4");
-  socketIO.onEvent(on_socket_event);
+  if (is_wifi_connected())
+  {
+    socketIO.begin(HOST, PORT, "/socket.io/?EIO=4");
+    socketIO.onEvent(on_socket_event);
+  }
 }
 
 void socket_routine()
 {
-  socketIO.loop();
+  if (is_wifi_connected())
+    socketIO.loop();
 }
 
 // ~~~~~~~~~~~~~~~ Messages ~~~~~~~~~~~~~~ //
@@ -609,7 +632,7 @@ void send_example_message()
 void send_register_message()
 {
   DynamicJsonDocument data(1024);
-  data["uuid"] = mac_addr;
+  data["uuid"] = device_id;
 
   JsonObject screen_info = data.createNestedObject("screenInfo");
   screen_info["colorDepth"] = COLOR_DEPTH;
@@ -806,7 +829,7 @@ bool show_page(int page_index, bool do_show_gui)
   String filepath = get_page_filepath(page_index);
 
   if (display.drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0))
-    draw_page_index();
+    draw_status_bar();
   else
   {
     Serial.println("Failed to show page");
@@ -905,7 +928,7 @@ void draw_loading_icon(TP_PRESSED tp)
   }
 }
 
-void draw_page_index()
+void draw_status_bar()
 {
   USE_SERIAL.println("drawing page index");
 
@@ -916,12 +939,13 @@ void draw_page_index()
   display.fillRect(cursor_x, cursor_y - 12, DISPLAY_WIDTH, 12 * 2, C_WHITE);
 
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
-  String connection_status = is_registered ? "Connected" : "Disconnected";
-  String info = page_info + " " + connection_status;
+  String wifi_status = is_wifi_connected() ? "O" : "X";
+  String server_status = is_registered ? "O" : "X";
+  String info = " Page: " + page_info + " | Wifi: [" + wifi_status + "] | Server: [" + server_status + "]";
 
   const GFXfont *text1_font = &FreeMono9pt7b;
   display.setFont(text1_font);
-  display.setTextColor(1, C_BLACK);
+  display.setTextColor(C_BLACK, C_WHITE);
   display.setTextSize(1);
   display.setCursor(cursor_x, cursor_y);
   display.print(info);
@@ -929,7 +953,7 @@ void draw_page_index()
 
 void draw_connection_status()
 {
-  draw_page_index();
+  draw_status_bar();
 }
 
 void draw_next_button()
@@ -972,9 +996,10 @@ void draw_device_index()
   if (page_index < 10)
     cursor_x += 9; // center it if its only 1 char
   int cursor_y = get_button_y(tp_middle, 0) + 7;
+
   const GFXfont *font = &FreeMono24pt7b;
   display.setFont(font);
-  display.setTextColor(0, C_BLACK);
+  display.setTextColor(C_BLACK, C_WHITE);
   display.setTextSize(1);
   display.setCursor(cursor_x, cursor_y);
   display.print(device_index_string);
@@ -1117,6 +1142,8 @@ void setup()
 
   USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
 
+  draw_status_bar();  
+
   if (!setup_storage())
   {
     USE_SERIAL.println("Failed to setup storage");
@@ -1125,28 +1152,28 @@ void setup()
 
   if (!load_config())
   {
-    USE_SERIAL.println("Failed to load config");
+    USE_SERIAL.println("Failed to load config, please make sure a valid config.json is present on the SD card (root directory).");
     return;
   }
 
   if (!load_state())
   {
-    USE_SERIAL.println("Failed to load state");
+    USE_SERIAL.println("Failed to load state, please make sure the state.json file is valid. If you are unsure, delete it and restart the device.");
     return;
   }
 
   setup_wifi();
   USE_SERIAL.println("Setup done: Wifi");
-  mac_addr = WiFi.macAddress();
+
   setup_socket();
   USE_SERIAL.println("Setup done: Socket");
 
   show_gui();
+  // display.display(); // initial refresh
 
   USE_SERIAL.println("Setup done.");
   is_setup = true;
 
-  USE_SERIAL.println("Call download.");
   // download_and_save_page(1);
 }
 
@@ -1174,6 +1201,6 @@ void loop()
   else
   {
     USE_SERIAL.println("Error during setup, entering deep sleep");
-    enter_deep_sleep();
+    enter_deep_sleep(false);
   }
 }
