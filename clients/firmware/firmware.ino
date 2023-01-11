@@ -20,6 +20,8 @@
 #include "./icons/enqueue_58.h"
 #include "./icons/hourglass_58.h"
 
+#include "./socket_manager.h"
+
 // ##################################################################### //
 // ############################## Firmware ############################# //
 // ##################################################################### //
@@ -124,6 +126,8 @@ int pairing_index = -1;
 
 String device_id;
 SocketIOclient socketIO;
+
+SocketManager socketManager;
 
 boolean is_registered = false;
 
@@ -587,89 +591,18 @@ bool is_wifi_connected()
 }
 
 // ====================================================== //
-// ======================= Socket ======================= //
+// ======================= Network ====================== //
 // ====================================================== //
 
-void setup_socket()
+class SocketEventHandler : virtual public SocketEventCallback
 {
-  if (is_wifi_connected())
+public:
+  void handle_connected_message()
   {
-    socketIO.begin(HOST, PORT, "/socket.io/?EIO=4");
-    socketIO.onEvent(on_socket_event);
-  }
-}
-
-void socket_routine()
-{
-  if (is_wifi_connected())
-    socketIO.loop();
-}
-
-// ~~~~~~~~~~~~~~~ Messages ~~~~~~~~~~~~~~ //
-
-// --------- Send --------- //
-
-void send_message(String name, DynamicJsonDocument *data)
-{
-  DynamicJsonDocument doc(1024);
-  JsonArray arr = doc.to<JsonArray>();
-
-  arr.add(name);
-  if (data != nullptr)
-    arr.add(*data);
-
-  String output;
-  serializeJson(doc, output);
-  socketIO.sendEVENT(output);
-
-  Serial.printf("Sent message '%s' with data", name.c_str());
-  Serial.println(output);
-}
-
-void send_example_message()
-{
-  DynamicJsonDocument data(1024);
-  data["message"] = "Hello from Arduino!";
-  send_message("example", &data);
-}
-
-void send_register_message()
-{
-  DynamicJsonDocument data(1024);
-  data["uuid"] = device_id;
-
-  JsonObject screen_info = data.createNestedObject("screenInfo");
-  screen_info["colorDepth"] = COLOR_DEPTH;
-  screen_info["dpi"] = DPI;
-
-  JsonObject resolution = screen_info.createNestedObject("resolution");
-  resolution["width"] = DISPLAY_WIDTH;
-  resolution["height"] = DISPLAY_HEIGHT;
-
-  data["isBrowser"] = false;
-
-  send_message(REGISTER_MESSAGE, &data);
-}
-
-void send_enqueue_message()
-{
-  send_message(ENQUEUE_MESSAGE, nullptr);
-}
-
-void send_dequeue_message()
-{
-  send_message(DEQUEUE_MESSAGE, nullptr);
-}
-
-// -------- Receive ------- //
-
-// Code (modified) from
-// // https://github.com/Links2004/arduinoWebSockets/blob/master/examples/esp32/WebSocketClientSocketIOack/WebSocketClientSocketIOack.ino
-void on_socket_event(socketIOmessageType_t type, uint8_t *payload, size_t length)
-{
-  switch (type)
+    socketManager.send_register_message(device_id, COLOR_DEPTH, DPI, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+  };
+  void handle_disconnected_message()
   {
-  case sIOtype_DISCONNECT:
     USE_SERIAL.printf("[IOc] Disconnected!\n");
     if (is_registered)
     {
@@ -684,148 +617,80 @@ void on_socket_event(socketIOmessageType_t type, uint8_t *payload, size_t length
       }
       refresh_display();
     }
-
-    break;
-  case sIOtype_CONNECT:
-    USE_SERIAL.printf("[IOc] Connected to url: %s\n", payload);
-
-    // join default namespace (no auto join in Socket.IO V3)
-    socketIO.send(sIOtype_CONNECT, "/");
-    send_register_message();
-    break;
-  case sIOtype_EVENT:
+  };
+  void handle_registered_message(DynamicJsonDocument data)
   {
-    char *sptr = NULL;
-    int id = strtol((char *)payload, &sptr, 10);
-    // USE_SERIAL.printf("[IOc] get event: %s id: %d\n", payload, id);
-    if (id)
+    USE_SERIAL.println("Handling registered message");
+    if (data["wasSuccessful"].as<bool>())
     {
-      payload = (uint8_t *)sptr;
+      USE_SERIAL.println("Registered successfully");
+      is_registered = true;
+      draw_connection_status();
+      refresh_display();
+      // handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
     }
-    DynamicJsonDocument doc(1024);
-    DeserializationError error = deserializeJson(doc, payload, length);
-    if (error)
+    else
     {
-      USE_SERIAL.print(F("deserializeJson() failed: "));
-      USE_SERIAL.println(error.c_str());
-      return;
+      USE_SERIAL.println("Registered unsuccessfully");
+      is_registered = false;
     }
-
-    String eventName = doc[0];
-    DynamicJsonDocument data = doc[1];
-
-    handle_socket_messages(eventName, data);
-  }
-  break;
-  case sIOtype_ACK:
-    USE_SERIAL.printf("[IOc] get ack: %u\n", length);
-    break;
-  case sIOtype_ERROR:
-    USE_SERIAL.printf("[IOc] get error: %u\n", length);
-    break;
-  case sIOtype_BINARY_EVENT:
-    USE_SERIAL.printf("[IOc] get binary: %u\n", length);
-    break;
-  case sIOtype_BINARY_ACK:
-    USE_SERIAL.printf("[IOc] get binary ack: %u\n", length);
-    break;
-  }
-}
-
-void handle_socket_messages(
-    String name,
-    DynamicJsonDocument data)
-{
-  USE_SERIAL.printf("Handling socket message '%s' with data: ", name.c_str());
-
-  // print the data
-  String output;
-  serializeJson(data, output);
-  USE_SERIAL.println(output);
-
-  if (name == REGISTERED_MESSAGE)
-    handle_registered_message(data);
-  else if (name == UPDATE_DEVICE_INDEX_MESSAGE)
-    handle_update_device_index_message(data);
-  else if (name == SHOW_PAGE_MESSAGE)
-    handle_show_page_message(data);
-  else if (name == PAGES_READY_MESSAGE)
-    handle_pages_ready_message(data);
-}
-
-void handle_registered_message(DynamicJsonDocument data)
-{
-  USE_SERIAL.println("Handling registered message");
-  if (data["wasSuccessful"].as<bool>())
+  };
+  void handle_update_device_index_message(DynamicJsonDocument data)
   {
-    USE_SERIAL.println("Registered successfully");
-    is_registered = true;
-    draw_connection_status();
+    USE_SERIAL.print("Handling update device index message, new index:");
+    device_index = data["deviceIndex"].as<int>();
+    draw_device_index_info();
     refresh_display();
-    // handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
-  }
-  else
+  };
+  void handle_show_page_message(DynamicJsonDocument data)
   {
-    USE_SERIAL.println("Registered unsuccessfully");
-    is_registered = false;
-  }
-}
+    // TODO: Handle null / -1
+    USE_SERIAL.println("Handling show page message");
+    int new_page_index = data["pageIndex"].as<int>();
 
-void handle_update_device_index_message(DynamicJsonDocument data)
-{
-  USE_SERIAL.print("Handling update device index message, new index:");
-  device_index = data["deviceIndex"].as<int>();
-  draw_device_index_info();
-  refresh_display();
-}
-
-void handle_show_page_message(DynamicJsonDocument data)
-{
-  // TODO: Handle null / -1
-  USE_SERIAL.println("Handling show page message");
-  int new_page_index = data["pageIndex"].as<int>();
-
-  set_page_index(new_page_index);
-  set_display_mode(displaying);
-  save_state();
-}
-
-void handle_pages_ready_message(DynamicJsonDocument data)
-{
-  USE_SERIAL.println("Handling pages ready message");
-  int new_page_count = data["pageCount"].as<int>();
-  set_page_count(new_page_count);
-  int new_page_index = device_index <= new_page_count ? device_index : new_page_count; // avoid going over max
-  USE_SERIAL.print("New page index: " + String(new_page_index));
-  set_page_index(new_page_index);
-
-  is_downloading = true;
-  draw_loading_icon(tp_middle);
-  refresh_display();
-
-  USE_SERIAL.println(page_count);
-  clear_stored_pages();
-
-  // Download the initial page & display it
-  download_and_save_page(new_page_index);
-  show_page(new_page_index, true);
-
-  // Download the rest of the pages
-  for (int i = 1; i <= page_count; i++)
+    set_page_index(new_page_index);
+    set_display_mode(displaying);
+    save_state();
+  };
+  void handle_pages_ready_message(DynamicJsonDocument data)
   {
-    if (i != new_page_index)
+    USE_SERIAL.println("Handling pages ready message");
+    int new_page_count = data["pageCount"].as<int>();
+    set_page_count(new_page_count);
+    int new_page_index = device_index <= new_page_count ? device_index : new_page_count; // avoid going over max
+    USE_SERIAL.print("New page index: " + String(new_page_index));
+    set_page_index(new_page_index);
+
+    is_downloading = true;
+    draw_loading_icon(tp_middle);
+    refresh_display();
+
+    USE_SERIAL.println(page_count);
+    clear_stored_pages();
+
+    // Download the initial page & display it
+    download_and_save_page(new_page_index);
+    show_page(new_page_index, true);
+
+    // Download the rest of the pages
+    for (int i = 1; i <= page_count; i++)
     {
-      download_and_save_page(i);
-      socket_routine(); // necessary to avoid DC during long downloads, doesn't work yet
+      if (i != new_page_index)
+      {
+        download_and_save_page(i);
+        socketManager.loop(); // necessary to avoid DC during long downloads, doesn't work yet
+      }
     }
-  }
 
-  USE_SERIAL.println("Downloaded all pages.");
-  device_index = -1;
-  is_downloading = false;
-  draw_gui();
-  refresh_display();
-}
+    USE_SERIAL.println("Downloaded all pages.");
+    device_index = -1;
+    is_downloading = false;
+    draw_gui();
+    refresh_display();
+  };
+};
+
+// ~~~~~~~~~~~~~~~ Messages ~~~~~~~~~~~~~~ //
 
 // ====================================================== //
 // ====================== Display ======================= //
@@ -1116,11 +981,11 @@ void handle_middle_tp_pressed()
   USE_SERIAL.println("MIDDLE tp pressed");
   if (device_index == -1)
   {
-    send_enqueue_message();
+    socketManager.send_enqueue_message();
   }
   else
   {
-    send_dequeue_message();
+    socketManager.send_dequeue_message();
   }
 }
 
@@ -1184,7 +1049,10 @@ void setup()
   setup_wifi();
   USE_SERIAL.println("Setup done: Wifi");
 
-  setup_socket();
+  // setup_socket();
+  // pass SocketEventHandler to setup as third argument
+  SocketEventHandler *handler = new SocketEventHandler();
+  socketManager.setup(HOST, PORT, handler);
   USE_SERIAL.println("Setup done: Socket");
 
   show_gui();
@@ -1213,7 +1081,8 @@ void loop()
     // run socket routine every 1s @todo find a better way to unblock loop
     if (millis() - last_socket_routine > 50)
     {
-      socket_routine();
+      // socket_routine();
+      socketManager.loop();
       last_socket_routine = millis();
     }
   }
