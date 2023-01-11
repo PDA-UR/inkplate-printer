@@ -97,9 +97,16 @@ function onApplicationStart() {
 						await DataManager.resetPageChainData();
 
 						console.log("device index", deviceIndex);
-						await DataManager.saveCurrentPageIndex(deviceIndex);
+						const pageIndex =
+							deviceIndex <= pageChainInfoModel.pageCount
+								? deviceIndex
+								: pageChainInfoModel.pageCount;
+
+						console.log("page index", pageIndex);
+
+						await DataManager.saveCurrentPageIndex(pageIndex);
 						await DataManager.savePageChainInfo(pageChainInfoModel);
-						const pageModel = await DataManager.getCurrentPage();
+						const pageModel = await DataManager.getPage(pageIndex);
 
 						console.log("pageChainInfoModel2", pageChainInfoModel);
 						viewController.setPageCount(pageChainInfoModel.pageCount);
@@ -113,7 +120,7 @@ function onApplicationStart() {
 
 						viewController.setDeviceIndex(-1);
 
-						await DataManager.getAllExceptCurrentPage();
+						await DataManager.getAllPagesExcept(pageIndex);
 
 						viewController.setConnectionStatus(ConnectionStatus.CONNECTED);
 						console.log("all pages loaded");

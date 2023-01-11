@@ -20,7 +20,7 @@
 - [ ] Fix black artefacts in icons (caused by 1 bit display mode)
 - [ ] Fix: Docsize > Device count bug
 - [ ] Device on/off indicator
-- [ ] Hide Device index after receiving first page
-- [ ] Download indicator
+- [x] Hide Device index after receiving first page
+- [x] Download indicator
 - [ ] Cleanup & Documentation
 - [ ] Webapp offline mode

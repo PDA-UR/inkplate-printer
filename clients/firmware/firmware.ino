@@ -792,7 +792,9 @@ void handle_pages_ready_message(DynamicJsonDocument data)
   USE_SERIAL.println("Handling pages ready message");
   int new_page_count = data["pageCount"].as<int>();
   set_page_count(new_page_count);
-  set_page_index(device_index);
+  int new_page_index = device_index <= new_page_count ? device_index : new_page_count; // avoid going over max
+  USE_SERIAL.print("New page index: " + String(new_page_index));
+  set_page_index(new_page_index);
 
   is_downloading = true;
   draw_loading_icon(tp_middle);
@@ -802,13 +804,13 @@ void handle_pages_ready_message(DynamicJsonDocument data)
   clear_stored_pages();
 
   // Download the initial page & display it
-  download_and_save_page(device_index);
-  show_page(device_index, true);
+  download_and_save_page(new_page_index);
+  show_page(new_page_index, true);
 
   // Download the rest of the pages
   for (int i = 1; i <= page_count; i++)
   {
-    if (i != device_index)
+    if (i != new_page_index)
     {
       download_and_save_page(i);
       socket_routine(); // necessary to avoid DC during long downloads, doesn't work yet

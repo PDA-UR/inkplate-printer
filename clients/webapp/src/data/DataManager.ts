@@ -121,12 +121,7 @@ export default class DataManager {
 
 	// ~~~~~~~~~~~~ Multiple pages ~~~~~~~~~~~ //
 
-	static async getAllExceptCurrentPage(): Promise<PageModel[]> {
-		const pageIndex = await this.getCurrentPageIndex();
-		console.log("Current page index: ", pageIndex);
-		if (pageIndex === undefined) {
-			return [];
-		}
+	static async getAllPagesExcept(pageIndex = -1): Promise<PageModel[]> {
 		const pageChainInfo = await this.getPageChainInfo();
 		console.log("Page chain info: ", pageChainInfo);
 		if (pageChainInfo === undefined) {
