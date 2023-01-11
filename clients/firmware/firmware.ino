@@ -79,6 +79,7 @@ int DISPLAY_HEIGHT;
 
 bool is_setup = false;
 bool is_downloading = false;
+bool is_going_to_sleep = false;
 
 // ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
 
@@ -138,6 +139,8 @@ boolean do_go_to_sleep()
 void enter_deep_sleep(bool do_hide_gui)
 {
   Serial.println("Going to sleep");
+  is_going_to_sleep = true;
+  draw_status_bar();
   if (do_hide_gui)
     hide_gui();
   esp_deep_sleep_start();
@@ -951,6 +954,8 @@ void draw_status_bar()
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
   String wifi_status = is_wifi_connected() ? "O" : "X";
   String server_status = is_registered ? "O" : "X";
+  // @ToDo: add awake status when sleep button is working again
+  // String awake_status = is_going_to_sleep ? "X" : "O";
   String info = " Page: " + page_info + " | Wifi: [" + wifi_status + "] | Server: [" + server_status + "]";
 
   const GFXfont *text1_font = &FreeMono9pt7b;

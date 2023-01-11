@@ -17,10 +17,10 @@
 - [x] Partial update?
 - [x] UUID on SD-Card
 - [x] Better touchpad sensitivity
-- [ ] Fix black artefacts in icons (caused by 1 bit display mode)
-- [ ] Fix: Docsize > Device count bug
-- [ ] Device on/off indicator
+- [x] Fix: Docsize > Device count bug
 - [x] Hide Device index after receiving first page
 - [x] Download indicator
+- [ ] Fix black artefacts in icons (caused by 1 bit display mode)
+- [ ] Device sleep/awake indicator (need to fix sleep button first)
 - [ ] Cleanup & Documentation
 - [ ] Webapp offline mode
