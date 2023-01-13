@@ -137,7 +137,9 @@ boolean is_registered = false;
 
 boolean do_go_to_sleep()
 {
-  return (millis() - wake_up_timestamp) > AWAKE_TIME * 1000;
+  return false;
+  // @ToDo: Fix sleep button
+  // return (millis() - wake_up_timestamp) > AWAKE_TIME * 1000;
 }
 
 void enter_deep_sleep(bool do_hide_gui)
@@ -574,7 +576,12 @@ void setup_wifi()
 
   WiFi.config(local_ip, gateway, subnet, dns1, dns2);
 
+  Serial.println("Setup: WiFi config");
+
   WiFi.begin(SSID.c_str(), PASSWORD.c_str());
+  
+  Serial.println("Setup: WiFi begin");
+  
   while (!is_wifi_connected() && millis() - setup_begin < WIFI_CONNECTION_TIMEOUT * 1000)
   {
     delay(250);
