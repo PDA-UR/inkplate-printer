@@ -38,13 +38,16 @@ struct ImageBuffer
 #define USE_SERIAL Serial
 #define formatBool(b) ((b) ? "true" : "false")
 
+// bitmask for GPIO_34 which is connected to MCP INTB
+#define TOUCHPAD_WAKE_MASK (int64_t(1) << GPIO_NUM_34)
+
 Inkplate display(INKPLATE_3BIT);
 
 // ====================================================== //
 // ====================== Constants ===================== //
 // ====================================================== //
 
-const int AWAKE_TIME = 600;            // seconds
+const int AWAKE_TIME = 60;             // seconds
 const int WIFI_CONNECTION_TIMEOUT = 5; // seconds
 const int C_BLACK = 1;
 const int C_WHITE = 0;
@@ -81,7 +84,6 @@ int DISPLAY_HEIGHT;
 
 bool is_setup = false;
 bool is_downloading = false;
-bool is_going_to_sleep = false;
 
 // ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
 
@@ -130,7 +132,6 @@ SocketIOclient socketIO;
 SocketManager socketManager;
 
 boolean is_registered = false;
-WiFiMulti WiFiMulti;
 
 // ====================================================== //
 // ======================= General ====================== //
@@ -138,18 +139,23 @@ WiFiMulti WiFiMulti;
 
 boolean do_go_to_sleep()
 {
-  return false;
+  // return false;
   // @ToDo: Fix sleep button
-  // return (millis() - wake_up_timestamp) > AWAKE_TIME * 1000;
+  return (millis() - wake_up_timestamp) > AWAKE_TIME * 1000;
 }
 
 void enter_deep_sleep(bool do_hide_gui)
 {
   Serial.println("Going to sleep");
-  is_going_to_sleep = true;
   draw_status_bar();
   if (do_hide_gui)
     hide_gui();
+
+  // Only enable TP wakeup, see this issue:
+  // https://github.com/SolderedElectronics/Inkplate-Arduino-library/issues/119
+  // esp_sleep_enable_ext1_wakeup((1ULL << 36), ESP_EXT1_WAKEUP_ALL_LOW);
+
+  esp_sleep_enable_ext1_wakeup(TOUCHPAD_WAKE_MASK, ESP_EXT1_WAKEUP_ANY_HIGH);
   esp_deep_sleep_start();
 }
 
@@ -843,8 +849,6 @@ void draw_status_bar()
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
   String wifi_status = is_wifi_connected() ? "O" : "X";
   String server_status = is_registered ? "O" : "X";
-  // @ToDo: add awake status when sleep button is working again
-  // String awake_status = is_going_to_sleep ? "X" : "O";
   String info = " Page: " + page_info + " | Wifi: [" + wifi_status + "] | Server: [" + server_status + "]";
 
   const GFXfont *text1_font = &FreeMono9pt7b;
@@ -1039,7 +1043,12 @@ void setup()
   wake_up_timestamp = millis();
 
   display.begin();
-  // display.selectDisplayMode(INKPLATE_1BIT);
+
+  // Setup mcp interrupts
+  display.setIntOutputInternal(MCP23017_INT_ADDR, display.mcpRegsInt, 1, false, false, HIGH);
+  display.setIntPinInternal(MCP23017_INT_ADDR, display.mcpRegsInt, PAD1, RISING);
+  display.setIntPinInternal(MCP23017_INT_ADDR, display.mcpRegsInt, PAD2, RISING);
+  display.setIntPinInternal(MCP23017_INT_ADDR, display.mcpRegsInt, PAD3, RISING);
 
   display.setDisplayMode(INKPLATE_1BIT);
 
@@ -1090,11 +1099,11 @@ int last_socket_routine = 0;
 
 void loop()
 {
-  // if (do_go_to_sleep())
-  // {
-  //   enter_deep_sleep();
-  //   return;
-  // }
+  if (do_go_to_sleep())
+  {
+    enter_deep_sleep(true);
+    return;
+  }
 
   if (is_setup)
   {
