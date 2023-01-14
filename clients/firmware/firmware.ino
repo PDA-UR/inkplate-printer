@@ -45,7 +45,7 @@ Inkplate display(INKPLATE_3BIT);
 // ====================================================== //
 
 const int AWAKE_TIME = 600;            // seconds
-const int WIFI_CONNECTION_TIMEOUT = 4; // seconds
+const int WIFI_CONNECTION_TIMEOUT = 5; // seconds
 const int C_BLACK = 1;
 const int C_WHITE = 0;
 
@@ -130,6 +130,7 @@ SocketIOclient socketIO;
 SocketManager socketManager;
 
 boolean is_registered = false;
+WiFiMulti WiFiMulti;
 
 // ====================================================== //
 // ======================= General ====================== //
@@ -573,15 +574,28 @@ void setup_wifi()
 {
   int setup_begin = millis();
   Serial.println("Setup: WiFi");
+  WiFi.mode(WIFI_STA);
 
-  WiFi.config(local_ip, gateway, subnet, dns1, dns2);
+  // TODO: Remove?
+  // WiFi.config(local_ip, gateway, subnet, dns1, dns2);
 
   Serial.println("Setup: WiFi config");
 
+  Serial.println(SSID.c_str());
+  Serial.println(PASSWORD.c_str());
+
+  Serial.println(WiFi.status());
+
+  if (WiFi.status() == 255)
+  {
+    Serial.println("NO MODULE!!!!");
+    return;
+  }
+
   WiFi.begin(SSID.c_str(), PASSWORD.c_str());
-  
-  Serial.println("Setup: WiFi begin");
-  
+
+  Serial.println("Setup: WiFi begin ");
+
   while (!is_wifi_connected() && millis() - setup_begin < WIFI_CONNECTION_TIMEOUT * 1000)
   {
     delay(250);
@@ -594,6 +608,7 @@ void setup_wifi()
 
 bool is_wifi_connected()
 {
+  // return false;
   return WiFi.status() == WL_CONNECTED;
 }
 
@@ -815,7 +830,9 @@ void draw_loading_icon(TP_PRESSED tp)
 
 void draw_status_bar()
 {
-  USE_SERIAL.println("drawing page index");
+  USE_SERIAL.println("drawing status bar");
+
+  Serial.println("[APP] Free memory: " + String(esp_get_free_heap_size()) + " bytes");
 
   int cursor_x = 0;
   int cursor_y = DISPLAY_HEIGHT - 12;
@@ -1033,8 +1050,6 @@ void setup()
 
   USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
 
-  draw_status_bar();
-
   if (!setup_storage())
   {
     USE_SERIAL.println("Failed to setup storage");
@@ -1056,12 +1071,12 @@ void setup()
   setup_wifi();
   USE_SERIAL.println("Setup done: Wifi");
 
-  // setup_socket();
   // pass SocketEventHandler to setup as third argument
   SocketEventHandler *handler = new SocketEventHandler();
   socketManager.setup(HOST, PORT, handler);
   USE_SERIAL.println("Setup done: Socket");
 
+  draw_status_bar();
   show_gui();
   // display.display(); // initial refresh
 
@@ -1084,11 +1099,9 @@ void loop()
   if (is_setup)
   {
     touchpad_routine();
-    // socket_routine();
     // run socket routine every 1s @todo find a better way to unblock loop
     if (millis() - last_socket_routine > 50)
     {
-      // socket_routine();
       socketManager.loop();
       last_socket_routine = millis();
     }
