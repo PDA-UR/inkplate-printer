@@ -147,7 +147,7 @@ boolean do_go_to_sleep()
 void enter_deep_sleep(bool do_hide_gui)
 {
   Serial.println("Going to sleep");
-  draw_status_bar();
+  draw_status_bar(false);
   if (do_hide_gui)
     hide_gui();
 
@@ -608,8 +608,6 @@ void setup_wifi()
     delay(250);
     Serial.print(".");
   }
-
-  draw_status_bar(); // TODO: Remove?
   Serial.println("Setup: WiFi complete");
 }
 
@@ -736,7 +734,7 @@ bool show_page(int page_index, bool do_show_gui)
   String filepath = get_page_filepath(page_index);
 
   if (display.drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0))
-    draw_status_bar();
+    draw_status_bar(true);
   else
   {
     Serial.println("Failed to show page");
@@ -835,7 +833,7 @@ void draw_loading_icon(TP_PRESSED tp)
   }
 }
 
-void draw_status_bar()
+void draw_status_bar(bool do_show_connection)
 {
   USE_SERIAL.println("drawing status bar");
 
@@ -850,19 +848,22 @@ void draw_status_bar()
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
   String wifi_status = is_wifi_connected() ? "O" : "X";
   String server_status = is_registered ? "O" : "X";
-  String info = " Page: " + page_info + " | Wifi: [" + wifi_status + "] | Server: [" + server_status + "]";
+  String info_page = " Page: " + page_info;
+  String info_conn = info_page + " | Wifi: [" + wifi_status + "] | Server: [" + server_status + "]";
 
   const GFXfont *text1_font = &FreeMono9pt7b;
   display.setFont(text1_font);
   display.setTextColor(C_BLACK, C_WHITE);
   display.setTextSize(1);
   display.setCursor(cursor_x, cursor_y);
-  display.print(info);
+  
+  if (do_show_connection) display.print(info_conn);
+  else display.print(info_page);
 }
 
 void draw_connection_status()
 {
-  draw_status_bar();
+  draw_status_bar(true);
 }
 
 void draw_next_button()
@@ -1089,7 +1090,7 @@ void setup()
   socketManager.setup(HOST, PORT, handler);
   USE_SERIAL.println("Setup done: Socket");
 
-  draw_status_bar();
+  draw_connection_status();
   show_gui();
   // display.display(); // initial refresh
 
