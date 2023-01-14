@@ -87,7 +87,7 @@ bool is_downloading = false;
 
 // ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
 
-int wake_up_timestamp = 0;
+int last_interaction_ts = 0;
 
 // ~~~~~~~~~~~~~~ Touchpads ~~~~~~~~~~~~~~ //
 
@@ -141,7 +141,7 @@ boolean do_go_to_sleep()
 {
   // return false;
   // @ToDo: Fix sleep button
-  return (millis() - wake_up_timestamp) > AWAKE_TIME * 1000;
+  return (millis() - last_interaction_ts) > AWAKE_TIME * 1000;
 }
 
 void enter_deep_sleep(bool do_hide_gui)
@@ -527,6 +527,7 @@ void set_display_mode(DisplayMode mode)
 void download_and_save_page(int page_index)
 {
   USE_SERIAL.println("downloading page " + String(page_index));
+  last_interaction_ts = millis(); // avoid sleep during download
   ImageBuffer *img = download_page(page_index);
 
   // if image size is 0, then there was an error
@@ -1001,12 +1002,14 @@ void read_touchpads()
 void handle_left_tp_pressed()
 {
   USE_SERIAL.println("LEFT tp pressed");
+  last_interaction_ts = millis();
   prev_page();
 }
 
 void handle_middle_tp_pressed()
 {
   USE_SERIAL.println("MIDDLE tp pressed");
+  last_interaction_ts = millis();
   if (device_index == -1)
   {
     socketManager.send_enqueue_message();
@@ -1020,6 +1023,7 @@ void handle_middle_tp_pressed()
 void handle_right_tp_pressed()
 {
   USE_SERIAL.println("RIGHT tp pressed");
+  last_interaction_ts = millis();
   next_page();
 }
 
@@ -1040,7 +1044,7 @@ void setup()
   USE_SERIAL.begin(115200);
   USE_SERIAL.setDebugOutput(true);
 
-  wake_up_timestamp = millis();
+  last_interaction_ts = millis();
 
   display.begin();
 
