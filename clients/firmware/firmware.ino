@@ -144,12 +144,10 @@ boolean do_go_to_sleep()
   return (millis() - last_interaction_ts) > AWAKE_TIME * 1000;
 }
 
-void enter_deep_sleep(bool do_hide_gui)
+void enter_deep_sleep()
 {
   Serial.println("Going to sleep");
-  draw_status_bar(false);
-  if (do_hide_gui)
-    hide_gui();
+  hide_gui();
 
   // Only enable TP wakeup, see this issue:
   // https://github.com/SolderedElectronics/Inkplate-Arduino-library/issues/119
@@ -697,7 +695,7 @@ public:
 
     // Download the initial page & display it
     download_and_save_page(new_page_index);
-    show_page(new_page_index, true);
+    show_page(new_page_index, true, true);
 
     // Download the rest of the pages
     for (int i = 1; i <= page_count; i++)
@@ -728,13 +726,13 @@ void refresh_display()
   display.partialUpdate();
 }
 
-bool show_page(int page_index, bool do_show_gui)
+bool show_page(int page_index, bool do_show_gui, bool do_show_connection)
 {
   USE_SERIAL.print("Showing page ");
   String filepath = get_page_filepath(page_index);
 
   if (display.drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0))
-    draw_status_bar(true);
+    draw_status_bar(do_show_connection);
   else
   {
     Serial.println("Failed to show page");
@@ -759,7 +757,7 @@ void navigate_page(int page_change)
   {
     set_page_index(new_page_index);
     draw_gui();
-    show_page(new_page_index, true);
+    show_page(new_page_index, true, true);
     USE_SERIAL.println("Showing page " + page_index);
   }
   else
@@ -782,12 +780,12 @@ void next_page()
 
 void show_gui()
 {
-  show_page(page_index, true);
+  show_page(page_index, true, true);
 }
 
 void hide_gui()
 {
-  show_page(page_index, false);
+  show_page(page_index, false, false);
 }
 
 void draw_gui()
@@ -1106,7 +1104,7 @@ void loop()
 {
   if (do_go_to_sleep())
   {
-    enter_deep_sleep(true);
+    enter_deep_sleep();
     return;
   }
 
@@ -1123,6 +1121,6 @@ void loop()
   else
   {
     USE_SERIAL.println("Error during setup, entering deep sleep");
-    enter_deep_sleep(false);
+    enter_deep_sleep();
   }
 }

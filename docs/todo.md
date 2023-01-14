@@ -10,7 +10,6 @@
   - [x] enqueue
   - [x] page number
 - [x] Fix Middle TP working badly (fixed with ducktape)
-- [ ] Fix sleep button (not working)
 
 ## Nice to have
 
@@ -20,6 +19,7 @@
 - [x] Fix: Docsize > Device count bug
 - [x] Hide Device index after receiving first page
 - [x] Download indicator
+- [ ] Fix sleep button (not working)
 - [ ] Fix black artefacts in icons (caused by 1 bit display mode)
 - [ ] Cleanup & Documentation
 - [ ] Webapp offline mode
