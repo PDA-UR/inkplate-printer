@@ -83,6 +83,8 @@ int DISPLAY_HEIGHT;
 // ====================================================== //
 
 bool is_setup = false;
+bool is_wifi_setup = false;
+bool is_socket_setup = false;
 bool is_downloading = false;
 
 // ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
@@ -607,6 +609,7 @@ void setup_wifi()
     Serial.print(".");
   }
   Serial.println("Setup: WiFi complete");
+  is_wifi_setup = true;
 }
 
 bool is_wifi_connected()
@@ -714,6 +717,15 @@ public:
     refresh_display();
   };
 };
+
+void setup_socket()
+{
+  Serial.println("Setup: Socket begin");
+  SocketEventHandler *handler = new SocketEventHandler();
+  socketManager.setup(HOST, PORT, handler);
+  is_socket_setup = true;
+  Serial.println("Setup: Socket complete");
+}
 
 // ~~~~~~~~~~~~~~~ Messages ~~~~~~~~~~~~~~ //
 
@@ -831,6 +843,12 @@ void draw_loading_icon(TP_PRESSED tp)
   }
 }
 
+void refresh_connection_status()
+{
+ draw_connection_status();
+ refresh_display();
+}
+
 void draw_status_bar(bool do_show_connection)
 {
   USE_SERIAL.println("drawing status bar");
@@ -844,8 +862,8 @@ void draw_status_bar(bool do_show_connection)
   display.fillRect(cursor_x, cursor_y - 12, DISPLAY_WIDTH, 12 * 2, C_WHITE);
 
   String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
-  String wifi_status = is_wifi_connected() ? "O" : "X";
-  String server_status = is_registered ? "O" : "X";
+  String wifi_status = is_wifi_setup ? (is_wifi_connected() ? "O" : "X") : "...";
+  String server_status = is_socket_setup ? (is_registered ? "O" : "X") : "...";
   String info_page = " Page: " + page_info;
   String info_conn = info_page + " | Wifi: [" + wifi_status + "] | Server: [" + server_status + "]";
 
@@ -854,9 +872,11 @@ void draw_status_bar(bool do_show_connection)
   display.setTextColor(C_BLACK, C_WHITE);
   display.setTextSize(1);
   display.setCursor(cursor_x, cursor_y);
-  
-  if (do_show_connection) display.print(info_conn);
-  else display.print(info_page);
+
+  if (do_show_connection)
+    display.print(info_conn);
+  else
+    display.print(info_page);
 }
 
 void draw_connection_status()
@@ -1080,22 +1100,17 @@ void setup()
     return;
   }
 
-  setup_wifi();
-  USE_SERIAL.println("Setup done: Wifi");
-
-  // pass SocketEventHandler to setup as third argument
-  SocketEventHandler *handler = new SocketEventHandler();
-  socketManager.setup(HOST, PORT, handler);
-  USE_SERIAL.println("Setup done: Socket");
-
   draw_connection_status();
   show_gui();
-  // display.display(); // initial refresh
+
+  setup_wifi();
+  refresh_connection_status();
+
+  setup_socket();
+  refresh_connection_status();
 
   USE_SERIAL.println("Setup done.");
   is_setup = true;
-
-  // download_and_save_page(1);
 }
 
 int last_socket_routine = 0;
