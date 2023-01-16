@@ -101,7 +101,7 @@ public:
     this->host = host;
     this->port = port;
     this->callback = callback;
-    if (WiFi.status() == WL_CONNECTED)
+    if (WiFi.status() != WL_CONNECTED)
       return false;
 
     socketIO.begin(host, port, "/socket.io/?EIO=4");

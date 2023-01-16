@@ -614,7 +614,6 @@ void setup_wifi()
 
 bool is_wifi_connected()
 {
-  // return false;
   return WiFi.status() == WL_CONNECTED;
 }
 
@@ -722,6 +721,8 @@ void setup_socket()
 {
   Serial.println("Setup: Socket begin");
   SocketEventHandler *handler = new SocketEventHandler();
+  USE_SERIAL.println(HOST);
+  USE_SERIAL.println(PORT);
   socketManager.setup(HOST, PORT, handler);
   is_socket_setup = true;
   Serial.println("Setup: Socket complete");
@@ -845,8 +846,8 @@ void draw_loading_icon(TP_PRESSED tp)
 
 void refresh_connection_status()
 {
- draw_connection_status();
- refresh_display();
+  draw_connection_status();
+  refresh_display();
 }
 
 void draw_status_bar(bool do_show_connection)
