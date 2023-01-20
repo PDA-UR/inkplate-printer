@@ -20,7 +20,7 @@
 #include "./icons/enqueue_58.h"
 #include "./icons/hourglass_58.h"
 
-#include "./socket_manager.h"
+#include "./socket_controller.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
@@ -131,7 +131,7 @@ int pairing_index = -1;
 String device_id;
 SocketIOclient socketIO;
 
-SocketManager socketManager;
+SocketController socketController;
 
 boolean is_registered = false;
 
@@ -626,7 +626,7 @@ class SocketEventHandler : virtual public SocketEventCallback
 public:
   void handle_connected_message()
   {
-    socketManager.send_register_message(device_id, COLOR_DEPTH, DPI, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    socketController.send_register_message(device_id, COLOR_DEPTH, DPI, DISPLAY_WIDTH, DISPLAY_HEIGHT);
   };
   void handle_disconnected_message()
   {
@@ -705,7 +705,7 @@ public:
       if (i != new_page_index)
       {
         download_and_save_page(i);
-        socketManager.loop(); // necessary to avoid DC during long downloads, doesn't work yet
+        socketController.loop(); // necessary to avoid DC during long downloads, doesn't work yet
       }
     }
 
@@ -723,7 +723,7 @@ void setup_socket()
   SocketEventHandler *handler = new SocketEventHandler();
   USE_SERIAL.println(HOST);
   USE_SERIAL.println(PORT);
-  socketManager.setup(HOST, PORT, handler);
+  socketController.setup(HOST, PORT, handler);
   is_socket_setup = true;
   Serial.println("Setup: Socket complete");
 }
@@ -1032,11 +1032,11 @@ void handle_middle_tp_pressed()
   last_interaction_ts = millis();
   if (device_index == -1)
   {
-    socketManager.send_enqueue_message();
+    socketController.send_enqueue_message();
   }
   else
   {
-    socketManager.send_dequeue_message();
+    socketController.send_dequeue_message();
   }
 }
 
@@ -1130,7 +1130,7 @@ void loop()
     // run socket routine every 1s @todo find a better way to unblock loop
     if (millis() - last_socket_routine > 50)
     {
-      socketManager.loop();
+      socketController.loop();
       last_socket_routine = millis();
     }
   }
