@@ -23,6 +23,7 @@
 #include "./socket_controller.h"
 #include "./touchpad_controller.h"
 #include "./view_controller.h"
+#include "./state.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
@@ -367,119 +368,6 @@ IPAddress parse_ip_json(JsonArray ip_array)
 }
 
 // ====================================================== //
-// ======================== State ======================= //
-// ====================================================== //
-
-bool state_file_exists()
-{
-  SdFile file;
-  if (file.open("state.json", O_RDWR))
-  {
-    file.close();
-    return true;
-  }
-  else
-    return false;
-}
-
-bool load_state()
-{
-  // TODO: Load state from SD card
-  USE_SERIAL.println("Loading State");
-
-  if (state_file_exists())
-  {
-    USE_SERIAL.println("State file exists");
-
-    SdFile file;
-    if (file.open("state.json", O_READ))
-    {
-      USE_SERIAL.println("State file opened");
-
-      // read from file
-      StaticJsonDocument<200> doc;
-      DeserializationError error = deserializeJson(doc, file);
-      if (!error)
-      {
-        USE_SERIAL.println("State file read");
-
-        // read state
-        state.p_info.page_index = doc["page_index"];
-        state.p_info.page_count = doc["page_count"];
-        // display_mode = doc["display_mode"];
-
-        file.close();
-        return true;
-      }
-      else
-      {
-        USE_SERIAL.println("State file read error");
-        file.close();
-        return false;
-      }
-    }
-    else
-    {
-      USE_SERIAL.println("Error opening state file!");
-      return false;
-    }
-  }
-  else
-  {
-    USE_SERIAL.println("State file does not exist, creating...");
-    return save_state();
-  }
-}
-
-bool save_state()
-{
-  USE_SERIAL.println("Saving State");
-
-  // create json
-  StaticJsonDocument<200> doc;
-  doc["page_index"] = state.p_info.page_index;
-  doc["page_count"] = state.p_info.page_count;
-  // doc["display_mode"] = display_mode;
-
-  // serialize json
-  String json;
-  serializeJson(doc, json);
-
-  // write to file
-  SdFile file;
-
-  if (file.open("state.json", O_RDWR | O_CREAT | O_AT_END))
-  {
-    // Clear the contents of the file
-    file.truncate(0);
-    file.seekSet(0);
-
-    file.write(json.c_str(), json.length());
-    file.flush();
-    file.close();
-    return true;
-  }
-  else
-    Serial.println("Error creating file!");
-  return false;
-}
-
-// ~~~~~~~~~~~~~~~~ Setter ~~~~~~~~~~~~~~~ //
-
-void set_page_index(int index)
-{
-  state.p_info.page_index = index;
-  save_state();
-}
-
-void set_page_count(int count)
-{
-  Serial.printf("Setting page count to %d \n", count);
-  state.p_info.page_count = count;
-  save_state();
-}
-
-// ====================================================== //
 // ======================= Network ====================== //
 // ====================================================== //
 
@@ -635,18 +523,18 @@ public:
     USE_SERIAL.println("Handling show page message");
     int new_page_index = data["pageIndex"].as<int>();
 
-    set_page_index(new_page_index);
+    state.set_page_index(new_page_index);
     // set_display_mode(displaying);
-    save_state();
+    state.save();
   };
   void handle_pages_ready_message(DynamicJsonDocument data)
   {
     USE_SERIAL.println("Handling pages ready message");
     int new_page_count = data["pageCount"].as<int>();
-    set_page_count(new_page_count);
+    state.set_page_count(new_page_count);
     int new_page_index = state.d_info.device_index <= new_page_count ? state.d_info.device_index : new_page_count; // avoid going over max
     USE_SERIAL.print("New page index: " + String(new_page_index));
-    set_page_index(new_page_index);
+    state.set_page_index(new_page_index);
 
     state.is_downloading = true;
     view_controller.draw_loading_icon(tp_middle);
@@ -753,7 +641,7 @@ void setup()
     return;
   }
 
-  if (!load_state())
+  if (!state.load())
   {
     USE_SERIAL.println("Failed to load state, please make sure the state.json file is valid. If you are unsure, delete it and restart the device.");
     return;

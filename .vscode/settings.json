@@ -14,7 +14,8 @@
 		"vector": "cpp",
 		"string_view": "cpp",
 		"utility": "cpp",
-		"serstream": "cpp"
+		"serstream": "cpp",
+		"atomic": "cpp"
 	},
 	"inline-bookmarks.view.showVisibleFilesOnly": true
 }

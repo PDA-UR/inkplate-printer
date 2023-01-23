@@ -2,6 +2,7 @@
 #define view_controller_h
 
 #include "Inkplate.h"
+#include "./state.h"
 
 // bitmask for GPIO_34 which is connected to MCP INTB
 #define TOUCHPAD_WAKE_MASK (int64_t(1) << GPIO_NUM_34)
@@ -10,35 +11,6 @@ const int AWAKE_TIME = 60;             // seconds
 const int WIFI_CONNECTION_TIMEOUT = 5; // seconds
 const int C_BLACK = 1;
 const int C_WHITE = 0;
-
-struct StatusInfo
-{
-    bool is_wifi_setup = false;
-    bool is_wifi_connected = false;
-    bool is_socket_setup = false;
-    bool is_socket_registered = false;
-};
-
-struct PageInfo
-{
-    int page_index = -1;
-    int page_count = -1;
-};
-
-struct DeviceInfo
-{
-    int device_index = -1;
-};
-
-struct State
-{
-    bool is_setup = false;
-    bool is_downloading = false;
-    bool last_interaction_ts = 0;
-    StatusInfo s_info;
-    PageInfo p_info;
-    DeviceInfo d_info;
-};
 
 class ViewController
 {
@@ -51,7 +23,6 @@ private:
     int DISPLAY_HEIGHT;
 
     State *state;
-    // TODO :delete
 
     String get_page_filename(int page_index)
     {
@@ -126,7 +97,9 @@ public:
         int new_page_index = state->p_info.page_index + page_change;
         if (new_page_index <= state->p_info.page_count && new_page_index > 0)
         {
-            state->p_info.page_index = new_page_index; // TODO: state obj, NOT SAVED RIGHT NOW!!!!
+
+            state->set_page_index(new_page_index);
+            // state->p_info.page_index = new_page_index; // TODO: state obj, NOT SAVED RIGHT NOW!!!!
             draw_gui();
             show_page(new_page_index, true, true);
         }
