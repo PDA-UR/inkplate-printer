@@ -1,5 +1,5 @@
-#ifndef view_controller_h
-#define view_controller_h
+#ifndef tp_controller_h
+#define tp_controller_h
 
 #include "Inkplate.h"
 

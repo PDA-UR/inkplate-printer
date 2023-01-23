@@ -22,6 +22,7 @@
 
 #include "./socket_controller.h"
 #include "./touchpad_controller.h"
+#include "./view_controller.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
@@ -39,19 +40,17 @@ struct ImageBuffer
 #define USE_SERIAL Serial
 #define formatBool(b) ((b) ? "true" : "false")
 
-// bitmask for GPIO_34 which is connected to MCP INTB
-#define TOUCHPAD_WAKE_MASK (int64_t(1) << GPIO_NUM_34)
+Inkplate display(INKPLATE_1BIT);
+ViewController view_controller;
 
-Inkplate display(INKPLATE_3BIT);
+State state;
 
 // ====================================================== //
 // ====================== Constants ===================== //
 // ====================================================== //
 
-const int AWAKE_TIME = 60;             // seconds
-const int WIFI_CONNECTION_TIMEOUT = 5; // seconds
-const int C_BLACK = 1;
-const int C_WHITE = 0;
+int DPI = 145;
+int COLOR_DEPTH = 1;
 
 // ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
 
@@ -72,36 +71,15 @@ IPAddress subnet;
 IPAddress dns1;
 IPAddress dns2;
 
-// ~~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
-
-int DPI;
-int COLOR_DEPTH;
-int DISPLAY_WIDTH;
-int DISPLAY_HEIGHT;
-
 // ====================================================== //
 // ====================== Variables ===================== //
 // ====================================================== //
-
-bool is_setup = false;
-bool is_wifi_setup = false;
-bool is_socket_setup = false;
-bool is_downloading = false;
-
-// ~~~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~ //
-
-int last_interaction_ts = 0;
 
 // ~~~~~~~~~~~~~~ Touchpads ~~~~~~~~~~~~~~ //
 
 TouchpadController touchpadController;
 
 // ~~~~~~~~~~~~~~~~ State ~~~~~~~~~~~~~~~~ //
-
-// ------- Document ------- //
-
-int page_index = -1;
-int page_count = -1;
 
 // --------- Modes -------- //
 
@@ -112,9 +90,6 @@ enum DisplayMode
   paired = 2,
 } display_mode;
 
-// -------- Device -------- //
-
-int device_index = -1;
 int pairing_index = -1;
 
 // ~~~~~~~~~~~~~~~ Network ~~~~~~~~~~~~~~~ //
@@ -134,13 +109,13 @@ boolean do_go_to_sleep()
 {
   // return false;
   // @ToDo: Fix sleep button
-  return (millis() - last_interaction_ts) > AWAKE_TIME * 1000;
+  return (millis() - state.last_interaction_ts) > AWAKE_TIME * 1000;
 }
 
 void enter_deep_sleep()
 {
   Serial.println("Going to sleep");
-  hide_gui();
+  view_controller.hide_gui();
 
   // Only enable TP wakeup, see this issue:
   // https://github.com/SolderedElectronics/Inkplate-Arduino-library/issues/119
@@ -176,7 +151,6 @@ bool setup_storage()
   }
   else
     USE_SERIAL.println("SD Card init ERROR!");
-
   return false;
 }
 
@@ -430,9 +404,9 @@ bool load_state()
         USE_SERIAL.println("State file read");
 
         // read state
-        page_index = doc["page_index"];
-        page_count = doc["page_count"];
-        display_mode = doc["display_mode"];
+        state.p_info.page_index = doc["page_index"];
+        state.p_info.page_count = doc["page_count"];
+        // display_mode = doc["display_mode"];
 
         file.close();
         return true;
@@ -463,9 +437,9 @@ bool save_state()
 
   // create json
   StaticJsonDocument<200> doc;
-  doc["page_index"] = page_index;
-  doc["page_count"] = page_count;
-  doc["display_mode"] = display_mode;
+  doc["page_index"] = state.p_info.page_index;
+  doc["page_count"] = state.p_info.page_count;
+  // doc["display_mode"] = display_mode;
 
   // serialize json
   String json;
@@ -494,20 +468,14 @@ bool save_state()
 
 void set_page_index(int index)
 {
-  page_index = index;
+  state.p_info.page_index = index;
   save_state();
 }
 
 void set_page_count(int count)
 {
   Serial.printf("Setting page count to %d \n", count);
-  page_count = count;
-  save_state();
-}
-
-void set_display_mode(DisplayMode mode)
-{
-  display_mode = mode;
+  state.p_info.page_count = count;
   save_state();
 }
 
@@ -518,7 +486,7 @@ void set_display_mode(DisplayMode mode)
 void download_and_save_page(int page_index)
 {
   USE_SERIAL.println("downloading page " + String(page_index));
-  last_interaction_ts = millis(); // avoid sleep during download
+  state.last_interaction_ts = millis(); // avoid sleep during download
   ImageBuffer *img = download_page(page_index);
 
   // if image size is 0, then there was an error
@@ -600,12 +568,13 @@ void setup_wifi()
     Serial.print(".");
   }
   Serial.println("Setup: WiFi complete");
-  is_wifi_setup = true;
+  state.s_info.is_wifi_setup = true;
 }
 
 bool is_wifi_connected()
 {
-  return WiFi.status() == WL_CONNECTED;
+  state.s_info.is_wifi_connected = WiFi.status() == WL_CONNECTED;
+  return state.s_info.is_wifi_connected;
 }
 
 // ====================================================== //
@@ -617,7 +586,7 @@ class SocketEventHandler : virtual public SocketEventCallback
 public:
   void handle_connected_message()
   {
-    socketController.send_register_message(device_id, COLOR_DEPTH, DPI, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    socketController.send_register_message(device_id, COLOR_DEPTH, DPI, display.width(), display.height());
   };
   void handle_disconnected_message()
   {
@@ -626,14 +595,14 @@ public:
     {
       // set unregistered
       is_registered = false;
-      draw_connection_status();
-      if (device_index != -1)
+      view_controller.draw_connection_status();
+      if (state.d_info.device_index != -1)
       {
         // reset device index
-        device_index = -1;
-        draw_device_index_info();
+        state.d_info.device_index = -1;
+        view_controller.draw_device_index_info();
       }
-      refresh_display();
+      view_controller.refresh_display();
     }
   };
   void handle_registered_message(DynamicJsonDocument data)
@@ -643,8 +612,8 @@ public:
     {
       USE_SERIAL.println("Registered successfully");
       is_registered = true;
-      draw_connection_status();
-      refresh_display();
+      view_controller.draw_connection_status();
+      view_controller.refresh_display();
       // handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
     }
     else
@@ -656,9 +625,9 @@ public:
   void handle_update_device_index_message(DynamicJsonDocument data)
   {
     USE_SERIAL.print("Handling update device index message, new index:");
-    device_index = data["deviceIndex"].as<int>();
-    draw_device_index_info();
-    refresh_display();
+    state.d_info.device_index = data["deviceIndex"].as<int>();
+    view_controller.draw_device_index_info();
+    view_controller.refresh_display();
   };
   void handle_show_page_message(DynamicJsonDocument data)
   {
@@ -667,7 +636,7 @@ public:
     int new_page_index = data["pageIndex"].as<int>();
 
     set_page_index(new_page_index);
-    set_display_mode(displaying);
+    // set_display_mode(displaying);
     save_state();
   };
   void handle_pages_ready_message(DynamicJsonDocument data)
@@ -675,23 +644,22 @@ public:
     USE_SERIAL.println("Handling pages ready message");
     int new_page_count = data["pageCount"].as<int>();
     set_page_count(new_page_count);
-    int new_page_index = device_index <= new_page_count ? device_index : new_page_count; // avoid going over max
+    int new_page_index = state.d_info.device_index <= new_page_count ? state.d_info.device_index : new_page_count; // avoid going over max
     USE_SERIAL.print("New page index: " + String(new_page_index));
     set_page_index(new_page_index);
 
-    is_downloading = true;
-    draw_loading_icon(tp_middle);
-    refresh_display();
+    state.is_downloading = true;
+    view_controller.draw_loading_icon(tp_middle);
+    view_controller.refresh_display();
 
-    USE_SERIAL.println(page_count);
     clear_stored_pages();
 
     // Download the initial page & display it
     download_and_save_page(new_page_index);
-    show_page(new_page_index, true, true);
+    view_controller.show_page(new_page_index, true, true);
 
     // Download the rest of the pages
-    for (int i = 1; i <= page_count; i++)
+    for (int i = 1; i <= state.p_info.page_count; i++)
     {
       if (i != new_page_index)
       {
@@ -701,10 +669,10 @@ public:
     }
 
     USE_SERIAL.println("Downloaded all pages.");
-    device_index = -1;
-    is_downloading = false;
-    draw_gui();
-    refresh_display();
+    state.d_info.device_index = -1;
+    state.is_downloading = false;
+    view_controller.draw_gui();
+    view_controller.refresh_display();
   };
 };
 
@@ -715,246 +683,11 @@ void setup_socket()
   USE_SERIAL.println(HOST);
   USE_SERIAL.println(PORT);
   socketController.setup(HOST, PORT, handler);
-  is_socket_setup = true;
+  state.s_info.is_socket_setup = true;
   Serial.println("Setup: Socket complete");
 }
 
 // ~~~~~~~~~~~~~~~ Messages ~~~~~~~~~~~~~~ //
-
-// ====================================================== //
-// ====================== Display ======================= //
-// ====================================================== //
-
-void refresh_display()
-{
-  display.partialUpdate();
-}
-
-bool show_page(int page_index, bool do_show_gui, bool do_show_connection)
-{
-  USE_SERIAL.print("Showing page ");
-  String filepath = get_page_filepath(page_index);
-
-  if (display.drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0))
-    draw_status_bar(do_show_connection);
-  else
-  {
-    Serial.println("Failed to show page");
-    return false;
-  }
-
-  if (do_show_gui)
-    draw_gui();
-
-  refresh_display();
-
-  return true;
-}
-
-void navigate_page(int page_change)
-{
-  draw_loading_icon(page_change > 0 ? tp_right : tp_left);
-  refresh_display();
-
-  int new_page_index = page_index + page_change;
-  if (new_page_index <= page_count && new_page_index > 0)
-  {
-    set_page_index(new_page_index);
-    draw_gui();
-    show_page(new_page_index, true, true);
-    USE_SERIAL.println("Showing page " + page_index);
-  }
-  else
-  {
-    draw_gui();
-    refresh_display();
-    USE_SERIAL.printf("at page limit %d of %d \n", new_page_index, page_count);
-  }
-}
-
-void prev_page()
-{
-  navigate_page(-1);
-}
-
-void next_page()
-{
-  navigate_page(1);
-}
-
-void show_gui()
-{
-  show_page(page_index, true, true);
-}
-
-void hide_gui()
-{
-  show_page(page_index, false, false);
-}
-
-void draw_gui()
-{
-  draw_gui_bg();
-  draw_back_button();
-  draw_next_button();
-  draw_device_index_info();
-}
-
-void draw_gui_bg()
-{
-  int padding = 4;
-  int border_width = 2;
-
-  int width = 56 + padding;
-  int height = get_button_y(tp_right, width) - get_button_y(tp_left, width) + 56 + padding;
-  int x = 0;
-  int y = get_button_y(tp_left, width);
-
-  // black border
-  display.fillRect(x, y - border_width, width + border_width, height + border_width * 2, C_BLACK);
-  // white background
-  display.fillRect(x, y, width, height, C_WHITE);
-}
-
-void draw_loading_icon(TP_PRESSED tp)
-{
-  int icon_size = sizeof(hourglass_icon);
-  switch (tp)
-  {
-  case tp_left:
-    display.drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_left, 56), true, false);
-    break;
-
-  case tp_right:
-    display.drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_right, 56), true, false);
-    break;
-
-  case tp_middle:
-    display.drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_middle, 56), true, false);
-    break;
-  }
-}
-
-void refresh_connection_status()
-{
-  draw_connection_status();
-  refresh_display();
-}
-
-void draw_status_bar(bool do_show_connection)
-{
-  USE_SERIAL.println("drawing status bar");
-
-  Serial.println("[APP] Free memory: " + String(esp_get_free_heap_size()) + " bytes");
-
-  int cursor_x = 0;
-  int cursor_y = DISPLAY_HEIGHT - 12;
-
-  // white bg
-  display.fillRect(cursor_x, cursor_y - 12, DISPLAY_WIDTH, 12 * 2, C_WHITE);
-
-  String page_info = "[" + String(page_index) + "/" + String(page_count) + "]";
-  String wifi_status = is_wifi_setup ? (is_wifi_connected() ? "O" : "X") : "...";
-  String server_status = is_socket_setup ? (is_registered ? "O" : "X") : "...";
-  String info_page = " Page: " + page_info;
-  String info_conn = info_page + " | Wifi: [" + wifi_status + "] | Server: [" + server_status + "]";
-
-  const GFXfont *text1_font = &FreeMono9pt7b;
-  display.setFont(text1_font);
-  display.setTextColor(C_BLACK, C_WHITE);
-  display.setTextSize(1);
-  display.setCursor(cursor_x, cursor_y);
-
-  if (do_show_connection)
-    display.print(info_conn);
-  else
-    display.print(info_page);
-}
-
-void draw_connection_status()
-{
-  draw_status_bar(true);
-}
-
-void draw_next_button()
-{
-  int icon_size = sizeof(arrow_right_icon);
-  display.drawJpegFromBuffer(arrow_right_icon, icon_size, 0, get_button_y(tp_right, 56), true, false);
-}
-
-void draw_back_button()
-{
-  int icon_size = sizeof(arrow_left_icon);
-  display.drawJpegFromBuffer(arrow_left_icon, icon_size, 0, get_button_y(tp_left, 56), true, false);
-}
-
-void draw_device_index_info()
-{
-  if (is_downloading)
-  {
-    draw_loading_icon(tp_middle);
-  }
-  else if (device_index == -1)
-  {
-    draw_enqueue_button();
-  }
-  else
-  {
-    draw_device_index();
-  }
-}
-
-void draw_device_index()
-{
-  USE_SERIAL.println("drawing index");
-
-  // white bg
-  int bg_x = 0;
-  int bg_y = get_button_y(tp_middle, 56);
-  display.fillRect(bg_x, bg_y, 56, 56, C_WHITE);
-
-  // index number
-  int icon_size = sizeof(enqueue_icon);
-  String device_index_string = device_index == -1 ? "0" : String(device_index);
-  int cursor_x = 6;
-  if (page_index < 10)
-    cursor_x += 9; // center it if its only 1 char
-  int cursor_y = get_button_y(tp_middle, 0) + 7;
-
-  const GFXfont *font = &FreeMono24pt7b;
-  display.setFont(font);
-  display.setTextColor(C_BLACK, C_WHITE);
-  display.setTextSize(1);
-  display.setCursor(cursor_x, cursor_y);
-  display.print(device_index_string);
-}
-
-void draw_enqueue_button()
-{
-  USE_SERIAL.println("draw enqueue");
-  int icon_size = sizeof(enqueue_icon);
-  display.drawJpegFromBuffer(enqueue_icon, icon_size, 0, get_button_y(tp_middle, 56), true, false);
-}
-
-int get_button_spacing()
-{
-  return DISPLAY_HEIGHT / 10 - 8; // dont ask me why
-}
-
-int get_button_y(TP_PRESSED button, int button_height)
-{
-  int middle_button_x = DISPLAY_HEIGHT / 2;
-  int button_offset = button_height / 2;
-  switch (button)
-  {
-  case tp_left:
-    return middle_button_x - get_button_spacing() - button_offset;
-  case tp_right:
-    return middle_button_x + get_button_spacing() - button_offset;
-  default:
-    return middle_button_x - button_offset;
-  }
-}
 
 // ====================================================== //
 // ====================== Touchpads ===================== //
@@ -966,12 +699,12 @@ public:
   void handle_left_tp_pressed()
   {
     USE_SERIAL.println("left tp pressed");
-    prev_page();
+    view_controller.prev_page();
   }
   void handle_middle_tp_pressed()
   {
     USE_SERIAL.println("middle tp pressed");
-    if (device_index == -1)
+    if (state.d_info.device_index == -1)
     {
       socketController.send_enqueue_message();
     }
@@ -983,7 +716,7 @@ public:
   void handle_right_tp_pressed()
   {
     USE_SERIAL.println("right tp pressed");
-    next_page();
+    view_controller.next_page();
   }
 };
 
@@ -1002,24 +735,10 @@ void setup()
   USE_SERIAL.begin(115200);
   USE_SERIAL.setDebugOutput(true);
 
-  last_interaction_ts = millis();
+  state.last_interaction_ts = millis();
+  view_controller.setup(&display, &state, 145, 1); // TODO: use values from config
 
-  display.begin();
-
-  // Setup mcp interrupts
-  display.setIntOutputInternal(MCP23017_INT_ADDR, display.mcpRegsInt, 1, false, false, HIGH);
-  display.setIntPinInternal(MCP23017_INT_ADDR, display.mcpRegsInt, PAD1, RISING);
-  display.setIntPinInternal(MCP23017_INT_ADDR, display.mcpRegsInt, PAD2, RISING);
-  display.setIntPinInternal(MCP23017_INT_ADDR, display.mcpRegsInt, PAD3, RISING);
-
-  display.setDisplayMode(INKPLATE_1BIT);
-
-  display.setRotation(3); // Portrait mode
-
-  DISPLAY_WIDTH = display.width(); // due to portrait mode
-  DISPLAY_HEIGHT = display.height();
-
-  USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
+  // USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
 
   setup_touchpads();
   if (!setup_storage())
@@ -1040,17 +759,17 @@ void setup()
     return;
   }
 
-  draw_connection_status();
-  show_gui();
+  view_controller.draw_connection_status();
+  view_controller.show_gui();
 
   setup_wifi();
-  refresh_connection_status();
+  view_controller.refresh_connection_status();
 
   setup_socket();
-  refresh_connection_status();
+  view_controller.refresh_connection_status();
 
   USE_SERIAL.println("Setup done.");
-  is_setup = true;
+  state.is_setup = true;
 }
 
 int last_socket_routine = 0;
@@ -1063,7 +782,7 @@ void loop()
     return;
   }
 
-  if (is_setup)
+  if (state.is_setup)
   {
     touchpadController.loop();
     // run socket routine every 1s @todo find a better way to unblock loop
