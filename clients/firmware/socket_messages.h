@@ -15,5 +15,3 @@ const String PAGES_READY_MESSAGE = "pagesReady";
 const String PAIR_MESSAGE = "pair";
 const String UNPAIR_MESSAGE = "unpair";
 const String UPDATE_PAIRING_INDEX_MESSAGE = "updatePairingIndex";
-
-//@ToDo: Refactor into enum

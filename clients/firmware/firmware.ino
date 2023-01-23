@@ -21,6 +21,7 @@
 #include "./icons/hourglass_58.h"
 
 #include "./socket_controller.h"
+#include "./touchpad_controller.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
@@ -93,17 +94,7 @@ int last_interaction_ts = 0;
 
 // ~~~~~~~~~~~~~~ Touchpads ~~~~~~~~~~~~~~ //
 
-bool touchpad_released = true;
-int touchpad_cooldown_ms = 500;
-long touchpad_released_time = 0;
-
-enum TP_PRESSED
-{
-  tp_none = 0,
-  tp_left = 1,
-  tp_middle = 2,
-  tp_right = 3
-} touchpad_pressed;
+TouchpadController touchpadController;
 
 // ~~~~~~~~~~~~~~~~ State ~~~~~~~~~~~~~~~~ //
 
@@ -969,90 +960,37 @@ int get_button_y(TP_PRESSED button, int button_height)
 // ====================== Touchpads ===================== //
 // ====================================================== //
 
-void touchpad_routine()
+class TouchpadEventHandler : virtual public TouchpadEventCallback
 {
-  read_touchpads();
-  if (touchpad_pressed == tp_none && !touchpad_released)
+public:
+  void handle_left_tp_pressed()
   {
-    Serial.println("nothing pressed");
-    touchpad_released = true;
-    touchpad_released_time = millis();
-    return;
+    USE_SERIAL.println("left tp pressed");
+    prev_page();
   }
-
-  if (!touchpad_released || touchpad_released_time + touchpad_cooldown_ms > millis())
+  void handle_middle_tp_pressed()
   {
-    // Serial.println("not released or on cooldown");
-    return;
+    USE_SERIAL.println("middle tp pressed");
+    if (device_index == -1)
+    {
+      socketController.send_enqueue_message();
+    }
+    else
+    {
+      socketController.send_dequeue_message();
+    }
   }
-  if (touchpad_pressed > 0)
-    touchpad_released = false;
-
-  switch (touchpad_pressed)
+  void handle_right_tp_pressed()
   {
-  case tp_left:
-    handle_left_tp_pressed();
-    break;
-  case tp_middle:
-    handle_middle_tp_pressed();
-    break;
-  case tp_right:
-    handle_right_tp_pressed();
-    break;
-  case tp_none:
-    // no button pressed, ignore
-    // Serial.println("TP none");
-    break;
+    USE_SERIAL.println("right tp pressed");
+    next_page();
   }
-}
+};
 
-void read_touchpads()
+void setup_touchpads()
 {
-  // print_touchpad_status();
-  if (display.readTouchpad(PAD1))
-    touchpad_pressed = tp_left;
-  else if (display.readTouchpad(PAD2))
-    touchpad_pressed = tp_middle;
-  else if (display.readTouchpad(PAD3))
-    touchpad_pressed = tp_right;
-  else
-    touchpad_pressed = tp_none;
-}
-
-void handle_left_tp_pressed()
-{
-  USE_SERIAL.println("LEFT tp pressed");
-  last_interaction_ts = millis();
-  prev_page();
-}
-
-void handle_middle_tp_pressed()
-{
-  USE_SERIAL.println("MIDDLE tp pressed");
-  last_interaction_ts = millis();
-  if (device_index == -1)
-  {
-    socketController.send_enqueue_message();
-  }
-  else
-  {
-    socketController.send_dequeue_message();
-  }
-}
-
-void handle_right_tp_pressed()
-{
-  USE_SERIAL.println("RIGHT tp pressed");
-  last_interaction_ts = millis();
-  next_page();
-}
-
-void print_touchpad_status()
-{
-  Serial.printf("triggered touchpads: left: %s middle: %s right: %s \n",
-                formatBool(display.readTouchpad(PAD1)),
-                formatBool(display.readTouchpad(PAD2)),
-                formatBool(display.readTouchpad(PAD3)));
+  TouchpadEventHandler *handler = new TouchpadEventHandler();
+  touchpadController.setup(&display, handler);
 }
 
 // ====================================================== //
@@ -1083,6 +1021,7 @@ void setup()
 
   USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
 
+  setup_touchpads();
   if (!setup_storage())
   {
     USE_SERIAL.println("Failed to setup storage");
@@ -1126,7 +1065,7 @@ void loop()
 
   if (is_setup)
   {
-    touchpad_routine();
+    touchpadController.loop();
     // run socket routine every 1s @todo find a better way to unblock loop
     if (millis() - last_socket_routine > 50)
     {
