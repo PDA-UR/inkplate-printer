@@ -20,9 +20,13 @@ class SocketController
 {
 private:
   SocketIOclient socketIO;
+
   String host;
   int port;
+  int last_routine_ts = 0;
+
   SocketEventCallback *callback;
+
   void on_socket_event(socketIOmessageType_t type, uint8_t *payload, size_t length)
   {
     switch (type)
@@ -112,10 +116,14 @@ public:
         });
     return true;
   };
-  void loop()
+  void loop(bool force = false)
   {
-    if (WiFi.status() == WL_CONNECTED)
-      socketIO.loop();
+    if (force || (millis() - last_routine_ts > 1000))
+    {
+      last_routine_ts = millis();
+      if (WiFi.status() == WL_CONNECTED)
+        socketIO.loop();
+    }
   };
 
   void send_example_message()

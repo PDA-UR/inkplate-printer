@@ -39,11 +39,11 @@ struct ImageBuffer
 
 // ~~~~~~~~~~~~~ Definitions ~~~~~~~~~~~~~ //
 
-const String PAGE_CHAIN_DIR = "/page_chain/";
-const String STATE_FILE = "/state.json";
-
 #define USE_SERIAL Serial
 #define formatBool(b) ((b) ? "true" : "false")
+
+const String PAGE_CHAIN_DIR = "/page_chain/";
+const String STATE_FILE = "/state.json";
 
 Inkplate display(INKPLATE_1BIT);
 
@@ -54,11 +54,7 @@ ViewController view_controller;
 State state;
 Config config;
 
-// ====================================================== //
-// ====================== Constants ===================== //
-// ====================================================== //
-
-// ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
+// Utils
 
 boolean do_go_to_sleep()
 {
@@ -78,6 +74,11 @@ void enter_deep_sleep()
 
   esp_sleep_enable_ext1_wakeup(TOUCHPAD_WAKE_MASK, ESP_EXT1_WAKEUP_ANY_HIGH);
   esp_deep_sleep_start();
+}
+
+String get_host_url()
+{
+  return "http://" + String(config.HOST) + ":" + String(config.PORT);
 }
 
 // ====================================================== //
@@ -211,13 +212,6 @@ String get_page_filepath(int page_index)
   String filepath = PAGE_CHAIN_DIR + get_page_filename(page_index);
   USE_SERIAL.println("filepath " + filepath);
   return filepath;
-}
-
-// ~~~~~~~~~~~~~~~~ Config ~~~~~~~~~~~~~~~ //
-
-String get_host_url()
-{
-  return "http://" + String(config.HOST) + ":" + String(config.PORT);
 }
 
 // ====================================================== //
@@ -419,11 +413,8 @@ void setup_socket()
 {
   Serial.println("Setup: Socket begin");
   SocketEventHandler *handler = new SocketEventHandler();
-  USE_SERIAL.println(config.HOST);
-  USE_SERIAL.println(config.PORT);
-  socketController.setup(config.HOST, config.PORT, handler);
-  state.s_info.is_socket_setup = true;
-  Serial.println("Setup: Socket complete");
+  state.s_info.is_socket_setup = socketController.setup(config.HOST, config.PORT, handler);
+  Serial.println("Setup: Socket completed, was successful: " + String(state.s_info.is_socket_setup));
 }
 
 // ~~~~~~~~~~~~~~~ Messages ~~~~~~~~~~~~~~ //
@@ -509,8 +500,6 @@ void setup()
   state.is_setup = true;
 }
 
-int last_socket_routine = 0;
-
 void loop()
 {
   if (do_go_to_sleep())
@@ -522,12 +511,7 @@ void loop()
   if (state.is_setup)
   {
     touchpadController.loop();
-    // run socket routine every 1s @todo find a better way to unblock loop
-    if (millis() - last_socket_routine > 50)
-    {
-      socketController.loop();
-      last_socket_routine = millis();
-    }
+    socketController.loop();
   }
   else
   {
