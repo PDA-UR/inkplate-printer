@@ -1,5 +1,5 @@
-#ifndef socket_manager_h
-#define socket_manager_h
+#ifndef socket_controller_h
+#define socket_controller_h
 
 #include <WebSocketsClient.h>
 #include <SocketIOclient.h>
