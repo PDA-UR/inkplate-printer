@@ -24,6 +24,7 @@
 #include "./touchpad_controller.h"
 #include "./view_controller.h"
 #include "./state.h"
+#include "./config.h"
 
 // ##################################################################### //
 // ############################## Firmware ############################# //
@@ -38,73 +39,26 @@ struct ImageBuffer
 
 // ~~~~~~~~~~~~~ Definitions ~~~~~~~~~~~~~ //
 
+const String PAGE_CHAIN_DIR = "/page_chain/";
+const String STATE_FILE = "/state.json";
+
 #define USE_SERIAL Serial
 #define formatBool(b) ((b) ? "true" : "false")
 
 Inkplate display(INKPLATE_1BIT);
+
+TouchpadController touchpadController;
+SocketController socketController;
 ViewController view_controller;
 
 State state;
+Config config;
 
 // ====================================================== //
 // ====================== Constants ===================== //
 // ====================================================== //
 
-int DPI = 145;
-int COLOR_DEPTH = 1;
-
 // ~~~~~~~~~~~~~ File System ~~~~~~~~~~~~~ //
-
-const String PAGE_CHAIN_DIR = "/page_chain/";
-const String CONFIG_FILE = "/config.json";
-const String STATE_FILE = "/state.json";
-
-// ~~~~~~~~~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~ //
-
-String SSID;
-String PASSWORD;
-String HOST;
-int PORT;
-
-IPAddress local_ip;
-IPAddress gateway;
-IPAddress subnet;
-IPAddress dns1;
-IPAddress dns2;
-
-// ====================================================== //
-// ====================== Variables ===================== //
-// ====================================================== //
-
-// ~~~~~~~~~~~~~~ Touchpads ~~~~~~~~~~~~~~ //
-
-TouchpadController touchpadController;
-
-// ~~~~~~~~~~~~~~~~ State ~~~~~~~~~~~~~~~~ //
-
-// --------- Modes -------- //
-
-enum DisplayMode
-{
-  blank = 0,
-  displaying = 1,
-  paired = 2,
-} display_mode;
-
-int pairing_index = -1;
-
-// ~~~~~~~~~~~~~~~ Network ~~~~~~~~~~~~~~~ //
-
-String device_id;
-SocketIOclient socketIO;
-
-SocketController socketController;
-
-boolean is_registered = false;
-
-// ====================================================== //
-// ======================= General ====================== //
-// ====================================================== //
 
 boolean do_go_to_sleep()
 {
@@ -263,108 +217,7 @@ String get_page_filepath(int page_index)
 
 String get_host_url()
 {
-  return "http://" + String(HOST) + ":" + String(PORT);
-}
-
-bool load_config()
-{
-  USE_SERIAL.println("Setup: Config");
-
-  File configFile;
-  if (!configFile.open(CONFIG_FILE.c_str(), O_READ))
-  {
-    USE_SERIAL.println("Failed to open config file");
-    return false;
-  }
-
-  size_t size = configFile.size();
-  if (size > 1024)
-  {
-    USE_SERIAL.println("Config file size is too large");
-    return false;
-  }
-
-  StaticJsonDocument<1024> doc;
-  DeserializationError error = deserializeJson(doc, configFile);
-  if (error)
-  {
-    USE_SERIAL.println("Failed to parse config file");
-    return false;
-  }
-
-  // get wifi sub property
-  JsonObject wifi = doc["wifi"];
-  if (!wifi.isNull())
-  {
-    SSID = wifi["ssid"].as<String>();
-    PASSWORD = wifi["password"].as<String>();
-  }
-  else
-    return false;
-
-  // get id property
-  String id = doc["id"].as<String>();
-  if (id != "null")
-    device_id = id;
-  else
-    return false;
-
-  USE_SERIAL.println(id);
-
-  // get api sub property
-  JsonObject api = doc["api"];
-  if (!api.isNull())
-  {
-    HOST = api["host"].as<String>();
-    PORT = api["port"].as<int>();
-  }
-  else
-    return false;
-
-  JsonObject network = doc["network"];
-  if (!network.isNull())
-  {
-    JsonArray LOCAL_IP = network["local_ip"].as<JsonArray>();
-    local_ip = parse_ip_json(LOCAL_IP);
-    JsonArray GATEWAY = network["gateway"].as<JsonArray>();
-    gateway = parse_ip_json(GATEWAY);
-    JsonArray SUBNET = network["subnet"].as<JsonArray>();
-    subnet = parse_ip_json(SUBNET);
-    JsonArray DNS1 = network["dns1"].as<JsonArray>();
-    dns1 = parse_ip_json(DNS1);
-    JsonArray DNS2 = network["dns2"].as<JsonArray>();
-    dns2 = parse_ip_json(DNS2);
-
-    // free up memeory
-    LOCAL_IP.clear();
-    GATEWAY.clear();
-    SUBNET.clear();
-    DNS1.clear();
-    DNS2.clear();
-  }
-  else
-    return false;
-
-  JsonObject display = doc["display"];
-  if (!display.isNull())
-  {
-    DPI = display["dpi"].as<int>();
-    COLOR_DEPTH = display["color_depth"].as<int>();
-  }
-  else
-    return false;
-
-  return true;
-}
-
-IPAddress parse_ip_json(JsonArray ip_array)
-{
-  if (ip_array.isNull() || ip_array.size() != 4)
-  {
-    USE_SERIAL.println("Error parsing ip address");
-    return IPAddress(0, 0, 0, 0);
-  }
-  return IPAddress(ip_array[0], ip_array[1], ip_array[2], ip_array[3]);
+  return "http://" + String(config.HOST) + ":" + String(config.PORT);
 }
 
 // ====================================================== //
@@ -390,7 +243,7 @@ void download_and_save_page(int page_index)
 
 ImageBuffer *download_page(int &page_num)
 {
-  String url = get_host_url() + "/api/img" + "?client=" + device_id + "&page_num=" + page_num;
+  String url = get_host_url() + "/api/img" + "?client=" + config.device_id + "&page_num=" + page_num;
 
   // download the image via http request
   HTTPClient http;
@@ -402,9 +255,7 @@ ImageBuffer *download_page(int &page_num)
     USE_SERIAL.println("Downloading image " + String(page_num));
     int size = http.getSize();
 
-    // get stream
     WiFiClient *stream = http.getStreamPtr();
-    // download image
     uint8_t *buffer = display.downloadFile(stream, size);
 
     http.end();
@@ -431,12 +282,12 @@ void setup_wifi()
   WiFi.mode(WIFI_STA);
 
   // TODO: Remove?
-  // WiFi.config(local_ip, gateway, subnet, dns1, dns2);
+  // WiFi.config(config.local_ip, config.gateway, config.subnet, config.dns1, config.dns2);
 
   Serial.println("Setup: WiFi config");
 
-  Serial.println(SSID.c_str());
-  Serial.println(PASSWORD.c_str());
+  Serial.println(config.SSID.c_str());
+  Serial.println(config.PASSWORD.c_str());
 
   Serial.println(WiFi.status());
 
@@ -446,7 +297,7 @@ void setup_wifi()
     return;
   }
 
-  WiFi.begin(SSID.c_str(), PASSWORD.c_str());
+  WiFi.begin(config.SSID.c_str(), config.PASSWORD.c_str());
 
   Serial.println("Setup: WiFi begin ");
 
@@ -474,15 +325,15 @@ class SocketEventHandler : virtual public SocketEventCallback
 public:
   void handle_connected_message()
   {
-    socketController.send_register_message(device_id, COLOR_DEPTH, DPI, display.width(), display.height());
+    socketController.send_register_message(config.device_id, config.COLOR_DEPTH, config.DPI, display.width(), display.height());
   };
   void handle_disconnected_message()
   {
     USE_SERIAL.printf("[IOc] Disconnected!\n");
-    if (is_registered)
+    if (state.s_info.is_socket_registered)
     {
       // set unregistered
-      is_registered = false;
+      state.s_info.is_socket_registered = false;
       view_controller.draw_connection_status();
       if (state.d_info.device_index != -1)
       {
@@ -499,7 +350,7 @@ public:
     if (data["wasSuccessful"].as<bool>())
     {
       USE_SERIAL.println("Registered successfully");
-      is_registered = true;
+      state.s_info.is_socket_registered = true;
       view_controller.draw_connection_status();
       view_controller.refresh_display();
       // handle_middle_tp_pressed(); // DEBUG: Auto enqueue on connect
@@ -507,7 +358,7 @@ public:
     else
     {
       USE_SERIAL.println("Registered unsuccessfully");
-      is_registered = false;
+      state.s_info.is_socket_registered = false;
     }
   };
   void handle_update_device_index_message(DynamicJsonDocument data)
@@ -568,9 +419,9 @@ void setup_socket()
 {
   Serial.println("Setup: Socket begin");
   SocketEventHandler *handler = new SocketEventHandler();
-  USE_SERIAL.println(HOST);
-  USE_SERIAL.println(PORT);
-  socketController.setup(HOST, PORT, handler);
+  USE_SERIAL.println(config.HOST);
+  USE_SERIAL.println(config.PORT);
+  socketController.setup(config.HOST, config.PORT, handler);
   state.s_info.is_socket_setup = true;
   Serial.println("Setup: Socket complete");
 }
@@ -624,9 +475,7 @@ void setup()
   USE_SERIAL.setDebugOutput(true);
 
   state.last_interaction_ts = millis();
-  view_controller.setup(&display, &state, 145, 1); // TODO: use values from config
-
-  // USE_SERIAL.println("W, H " + String(DISPLAY_WIDTH) + " x " + String(DISPLAY_HEIGHT));
+  view_controller.setup(&display, &state);
 
   setup_touchpads();
   if (!setup_storage())
@@ -635,7 +484,7 @@ void setup()
     return;
   }
 
-  if (!load_config())
+  if (!config.load())
   {
     USE_SERIAL.println("Failed to load config, please make sure a valid config.json is present on the SD card (root directory).");
     return;

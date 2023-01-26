@@ -3,6 +3,7 @@
 
 #include "Inkplate.h"
 #include "./state.h"
+#include "./config.h"
 
 // bitmask for GPIO_34 which is connected to MCP INTB
 #define TOUCHPAD_WAKE_MASK (int64_t(1) << GPIO_NUM_34)
@@ -17,8 +18,6 @@ class ViewController
 
 private:
     Inkplate *display;
-    int DPI;
-    int COLOR_DEPTH;
     int DISPLAY_WIDTH;
     int DISPLAY_HEIGHT;
 
@@ -40,13 +39,10 @@ private:
 
 public:
     ViewController(){};
-    void setup(Inkplate *display, State *state, int dpi, int color_depth)
+    void setup(Inkplate *display, State *state)
     {
         this->display = display;
         this->state = state;
-
-        DPI = dpi;
-        COLOR_DEPTH = color_depth;
 
         display->begin();
         // Setup mcp interrupts
