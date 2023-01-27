@@ -132,6 +132,3 @@ out
 
 # npm
 package-lock.json
-
-# credentials
-config.h
