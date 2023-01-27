@@ -1,11 +1,7 @@
 #include <Arduino.h>
 #include "Inkplate.h"
-// @ToDo: Clean up imports
-#include <ArduinoJson.h>
-#include "SdFat.h"
 
-#include <WebSocketsClient.h>
-#include <SocketIOclient.h>
+#include <ArduinoJson.h>
 
 #include "./socket_controller.h"
 #include "./touchpad_controller.h"
