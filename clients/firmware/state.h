@@ -5,6 +5,8 @@
 #include <ArduinoJson.h>
 #include "SdFat.h"
 
+const String STATE_FILE = "state.json";
+
 struct StatusInfo
 {
     bool is_wifi_setup = false;
@@ -42,7 +44,7 @@ public:
         {
             Serial.println("State file exists");
             SdFile file;
-            if (file.open("state.json", O_READ))
+            if (file.open(STATE_FILE.c_str(), O_READ))
             {
                 Serial.println("State file opened");
                 // read from file
@@ -127,7 +129,7 @@ private:
     bool state_file_exists()
     {
         SdFile file;
-        if (file.open("state.json", O_RDWR))
+        if (file.open(STATE_FILE.c_str(), O_RDWR))
         {
             file.close();
             return true;

@@ -1,3 +1,6 @@
+#ifndef socket_messages_h
+#define socket_messages_h
+
 const String CONNECT_MESSAGE = "connect";
 const String DISCONNECT_MESSAGE = "disconnect";
 
@@ -15,3 +18,5 @@ const String PAGES_READY_MESSAGE = "pagesReady";
 const String PAIR_MESSAGE = "pair";
 const String UNPAIR_MESSAGE = "unpair";
 const String UPDATE_PAIRING_INDEX_MESSAGE = "updatePairingIndex";
+
+#endif

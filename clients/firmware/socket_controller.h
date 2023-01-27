@@ -5,6 +5,8 @@
 #include <SocketIOclient.h>
 #include <ArduinoJson.h>
 
+#include "./socket_messages.h"
+
 class SocketEventCallback
 {
 public:

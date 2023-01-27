@@ -5,6 +5,17 @@
 #include "./state.h"
 #include "./config.h"
 
+#include "./libraries/InkplateLibrary/Fonts/FreeMono9pt7b.h"
+#include "./libraries/InkplateLibrary/Fonts/FreeMonoBold12pt7b.h"
+#include "./libraries/InkplateLibrary/Fonts/FreeMono24pt7b.h"
+#include "./libraries/InkplateLibrary/Fonts/FreeMonoBold24pt7b.h"
+
+#include "socket_messages.h"
+#include "./icons/arrow_left_58.h"
+#include "./icons/arrow_right_58.h"
+#include "./icons/enqueue_58.h"
+#include "./icons/hourglass_58.h"
+
 // bitmask for GPIO_34 which is connected to MCP INTB
 #define TOUCHPAD_WAKE_MASK (int64_t(1) << GPIO_NUM_34)
 
