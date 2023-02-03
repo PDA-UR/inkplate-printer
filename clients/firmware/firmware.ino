@@ -196,33 +196,34 @@ void setup_touchpads()
   touchpadController.setup(&display, handler);
 }
 
-void setup_view()
-{
-  Serial.println("Setup: View begin");
-  state.last_interaction_ts = millis();
-  view_controller.setup(&display, &state);
-  view_controller.draw_connection_status();
-  view_controller.show_gui();
-}
-
-bool is_wifi_connected()
-{
-  state.s_info.is_wifi_connected = WiFi.status() == WL_CONNECTED;
-  return state.s_info.is_wifi_connected;
-};
-
-bool setup_wifi()
+// void setup_view()
+// {
+//   Serial.println("Setup: View begin");
+//   state.last_interaction_ts = millis();
+//   view_controller.setup(&display, &state);
+//   view_controller.draw_connection_status();
+//   view_controller.show_gui();
+// }
+void setup_wifi()
 {
   int setup_begin = millis();
   Serial.println("Setup: WiFi");
   WiFi.mode(WIFI_STA);
 
-  // WiFi.config(config->local_ip, config->gateway, config->subnet, config->dns1, config->dns2);
+  // TODO: Remove?
+  // WiFi.config(config.local_ip, config.gateway, config.subnet, config.dns1, config.dns2);
+
+  Serial.println("Setup: WiFi config");
+
+  Serial.println(config.SSID.c_str());
+  Serial.println(config.PASSWORD.c_str());
+
+  Serial.println(WiFi.status());
 
   if (WiFi.status() == 255)
   {
     Serial.println("NO MODULE!!!!");
-    return false;
+    return;
   }
 
   WiFi.begin(config.SSID.c_str(), config.PASSWORD.c_str());
@@ -234,9 +235,15 @@ bool setup_wifi()
     delay(250);
     Serial.print(".");
   }
+  Serial.println("Setup: WiFi complete");
+  state.s_info.is_wifi_setup = true;
+}
 
-  return true;
-};
+bool is_wifi_connected()
+{
+  state.s_info.is_wifi_connected = WiFi.status() == WL_CONNECTED;
+  return state.s_info.is_wifi_connected;
+}
 
 void setup_network()
 {
@@ -258,6 +265,11 @@ void setup()
   Serial.begin(115200);
   Serial.setDebugOutput(true);
 
+  state.last_interaction_ts = millis();
+  view_controller.setup(&display, &state);
+
+  setup_touchpads();
+
   if (!storage_manager.setup(&display))
   {
     Serial.println("Failed to setup storage");
@@ -275,12 +287,12 @@ void setup()
     Serial.println("Failed to load state, please make sure the state.json file is valid. If you are unsure, delete it and restart the device.");
     return;
   }
+  view_controller.draw_connection_status();
+  view_controller.show_gui();
 
-  setup_touchpads();
-  setup_view();
-
-  state.s_info.is_wifi_setup = setup_wifi();
+  setup_wifi();
   setup_network();
+
   view_controller.refresh_connection_status();
 
   setup_socket();

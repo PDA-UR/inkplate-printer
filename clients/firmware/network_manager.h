@@ -1,11 +1,6 @@
 #ifndef network_manager_h
 #define network_manager_h
 
-#include <Arduino.h>
-#include <Inkplate.h>
-
-#include <WiFi.h>
-
 #include "./config.h"
 #include "./util.h"
 
