@@ -242,7 +242,6 @@ void setup_network()
 {
   Serial.println("Setup: Network begin");
   network_manager.setup(&display, &config);
-  state.s_info.is_wifi_setup = setup_wifi();
   Serial.println("Setup: Network completed, is connected: " + String(state.s_info.is_wifi_connected));
 }
 
@@ -280,6 +279,7 @@ void setup()
   setup_touchpads();
   setup_view();
 
+  state.s_info.is_wifi_setup = setup_wifi();
   setup_network();
   view_controller.refresh_connection_status();
 
