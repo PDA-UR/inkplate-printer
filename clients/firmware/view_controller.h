@@ -37,14 +37,12 @@ private:
     String get_page_filename(int page_index)
     {
         String filename = String(page_index) + ".jpeg";
-        // USE_SERIAL.println("filename " + filename);
         return filename;
     }
 
     String get_page_filepath(int page_index)
     {
         String filepath = "/page_chain/" + get_page_filename(page_index);
-        // USE_SERIAL.println("filepath " + filepath);
         return filepath;
     }
 
@@ -80,7 +78,6 @@ private:
         {
 
             state->set_page_index(new_page_index);
-            // state->p_info.page_index = new_page_index; // TODO: state obj, NOT SAVED RIGHT NOW!!!!
             draw_gui();
             show_page(new_page_index, true, true);
         }
