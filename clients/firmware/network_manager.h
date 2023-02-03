@@ -11,7 +11,7 @@ public:
     {
         this->display = display;
         this->config = config;
-        return true; // kinda useless
+        return true; // for consistency
     };
 
     ImageBuffer *download_page(int &page_num)

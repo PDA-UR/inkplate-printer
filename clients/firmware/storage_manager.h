@@ -57,14 +57,8 @@ public:
         SdFile file;
         String bmp_filename = get_page_filepath(page_index);
 
-        // make sure file can be created, otherwise print error
-        Serial.println(bmp_filename.c_str());
-
-        // create file
         if (file.open(bmp_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC))
         {
-            // opened file
-            // clear contents
             file.truncate(0);
             file.seekSet(0);
 

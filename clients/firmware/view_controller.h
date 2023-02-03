@@ -48,6 +48,65 @@ private:
         return filepath;
     }
 
+    int get_button_spacing()
+    {
+        return DISPLAY_HEIGHT / 10 - 8; // dont ask me why
+    }
+
+    int get_button_y(TP_PRESSED button, int button_height)
+    {
+        // TODO: private
+        int middle_button_x = DISPLAY_HEIGHT / 2;
+        int button_offset = button_height / 2;
+        switch (button)
+        {
+        case tp_left:
+            return middle_button_x - get_button_spacing() - button_offset;
+        case tp_right:
+            return middle_button_x + get_button_spacing() - button_offset;
+        default:
+            return middle_button_x - button_offset;
+        }
+    }
+
+    void navigate_page(int page_change)
+    {
+        // TODO: Private
+        draw_loading_icon(page_change > 0 ? tp_right : tp_left);
+        refresh_display();
+
+        int new_page_index = state->p_info.page_index + page_change;
+        if (new_page_index <= state->p_info.page_count && new_page_index > 0)
+        {
+
+            state->set_page_index(new_page_index);
+            // state->p_info.page_index = new_page_index; // TODO: state obj, NOT SAVED RIGHT NOW!!!!
+            draw_gui();
+            show_page(new_page_index, true, true);
+        }
+        else
+        {
+            draw_gui();
+            refresh_display();
+        }
+    }
+
+    void draw_gui_bg()
+    {
+        int padding = 4;
+        int border_width = 2;
+
+        int width = 56 + padding;
+        int height = get_button_y(tp_right, width) - get_button_y(tp_left, width) + 56 + padding;
+        int x = 0;
+        int y = get_button_y(tp_left, width);
+
+        // black border
+        display->fillRect(x, y - border_width, width + border_width, height + border_width * 2, C_BLACK);
+        // white background
+        display->fillRect(x, y, width, height, C_WHITE);
+    }
+
 public:
     ViewController(){};
     void setup(Inkplate *display, State *state)
@@ -76,14 +135,13 @@ public:
 
     bool show_page(int page_index, bool do_show_gui, bool do_show_connection)
     {
-        // // USE_SERIAL.print("Showing page ");
         String filepath = get_page_filepath(page_index);
 
         if (display->drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0))
             draw_status_bar(do_show_connection);
         else
         {
-            // serial.println("Failed to show page");
+            Serial.println("Failed to show page");
             return false;
         }
 
@@ -93,28 +151,6 @@ public:
         refresh_display();
 
         return true;
-    }
-
-    void navigate_page(int page_change)
-    {
-        // TODO: Private
-        draw_loading_icon(page_change > 0 ? tp_right : tp_left);
-        refresh_display();
-
-        int new_page_index = state->p_info.page_index + page_change;
-        if (new_page_index <= state->p_info.page_count && new_page_index > 0)
-        {
-
-            state->set_page_index(new_page_index);
-            // state->p_info.page_index = new_page_index; // TODO: state obj, NOT SAVED RIGHT NOW!!!!
-            draw_gui();
-            show_page(new_page_index, true, true);
-        }
-        else
-        {
-            draw_gui();
-            refresh_display();
-        }
     }
 
     void prev_page()
@@ -145,23 +181,6 @@ public:
         draw_device_index_info();
     }
 
-    void draw_gui_bg()
-    {
-        // TODO: Private
-        int padding = 4;
-        int border_width = 2;
-
-        int width = 56 + padding;
-        int height = get_button_y(tp_right, width) - get_button_y(tp_left, width) + 56 + padding;
-        int x = 0;
-        int y = get_button_y(tp_left, width);
-
-        // black border
-        display->fillRect(x, y - border_width, width + border_width, height + border_width * 2, C_BLACK);
-        // white background
-        display->fillRect(x, y, width, height, C_WHITE);
-    }
-
     void draw_loading_icon(TP_PRESSED tp)
     {
         int icon_size = sizeof(hourglass_icon);
@@ -189,10 +208,6 @@ public:
 
     void draw_status_bar(bool do_show_connection)
     {
-        // // USE_SERIAL.println("drawing status bar");
-
-        // serial.println("[APP] Free memory: " + String(esp_get_free_heap_size()) + " bytes");
-
         int cursor_x = 0;
         int cursor_y = DISPLAY_HEIGHT - 12;
 
@@ -252,8 +267,6 @@ public:
 
     void draw_device_index()
     {
-        // // USE_SERIAL.println("drawing index");
-
         // white bg
         int bg_x = 0;
         int bg_y = get_button_y(tp_middle, 56);
@@ -277,32 +290,9 @@ public:
 
     void draw_enqueue_button()
     {
-        // // USE_SERIAL.println("draw enqueue");
         int icon_size = sizeof(enqueue_icon);
         display->drawJpegFromBuffer(enqueue_icon, icon_size, 0, get_button_y(tp_middle, 56), true, false);
     }
-
-    int get_button_spacing()
-    {
-        // TODO: private
-        return DISPLAY_HEIGHT / 10 - 8; // dont ask me why
-    }
-
-    int get_button_y(TP_PRESSED button, int button_height)
-    {
-        // TODO: private
-        int middle_button_x = DISPLAY_HEIGHT / 2;
-        int button_offset = button_height / 2;
-        switch (button)
-        {
-        case tp_left:
-            return middle_button_x - get_button_spacing() - button_offset;
-        case tp_right:
-            return middle_button_x + get_button_spacing() - button_offset;
-        default:
-            return middle_button_x - button_offset;
-        }
-    }
 };
 
-#endif /* view_controller_h */
+#endif

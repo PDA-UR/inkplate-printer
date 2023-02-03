@@ -116,11 +116,11 @@ public:
   void handle_show_page_message(DynamicJsonDocument data)
   {
     // TODO: Handle null / -1
+    // Currently not sent by server
     Serial.println("Handling show page message");
     int new_page_index = data["pageIndex"].as<int>();
 
     state.set_page_index(new_page_index);
-    // set_display_mode(displaying);
     state.save();
   };
   void handle_pages_ready_message(DynamicJsonDocument data)
@@ -196,21 +196,19 @@ void setup_touchpads()
   touchpadController.setup(&display, handler);
 }
 
-// void setup_view()
-// {
-//   Serial.println("Setup: View begin");
-//   state.last_interaction_ts = millis();
-//   view_controller.setup(&display, &state);
-//   view_controller.draw_connection_status();
-//   view_controller.show_gui();
-// }
+void setup_view()
+{
+  Serial.println("Setup: View begin");
+  state.last_interaction_ts = millis();
+  view_controller.setup(&display, &state);
+}
 void setup_wifi()
 {
   int setup_begin = millis();
   Serial.println("Setup: WiFi");
   WiFi.mode(WIFI_STA);
 
-  // TODO: Remove?
+  // Works without this, but leaving it here for reference
   // WiFi.config(config.local_ip, config.gateway, config.subnet, config.dns1, config.dns2);
 
   Serial.println("Setup: WiFi config");
@@ -265,9 +263,7 @@ void setup()
   Serial.begin(115200);
   Serial.setDebugOutput(true);
 
-  state.last_interaction_ts = millis();
-  view_controller.setup(&display, &state);
-
+  setup_view();
   setup_touchpads();
 
   if (!storage_manager.setup(&display))
@@ -287,6 +283,7 @@ void setup()
     Serial.println("Failed to load state, please make sure the state.json file is valid. If you are unsure, delete it and restart the device.");
     return;
   }
+
   view_controller.draw_connection_status();
   view_controller.show_gui();
 

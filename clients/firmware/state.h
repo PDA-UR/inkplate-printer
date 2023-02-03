@@ -55,7 +55,6 @@ public:
                     Serial.println("State file read");
                     p_info.page_index = doc["page_index"];
                     p_info.page_count = doc["page_count"];
-                    // display_mode = doc["display_mode"];
                     file.close();
                     return true;
                 }
@@ -81,14 +80,10 @@ public:
 
     bool save()
     {
-        // USE_SERIAL.println("Saving State");
-
         // create json
         StaticJsonDocument<200> doc;
         doc["page_index"] = p_info.page_index;
         doc["page_count"] = p_info.page_count;
-        // doc["display_mode"] = display_mode;
-
         // serialize json
         String json;
         serializeJson(doc, json);
@@ -107,8 +102,7 @@ public:
             file.close();
             return true;
         }
-        // else
-        // Serial.println("Error creating file!");
+
         return false;
     }
 
@@ -120,7 +114,6 @@ public:
 
     void set_page_count(int count)
     {
-        // Serial.printf("Setting page count to %d \n", count);
         p_info.page_count = count;
         save();
     }
