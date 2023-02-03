@@ -205,11 +205,44 @@ void setup_view()
   view_controller.show_gui();
 }
 
+bool is_wifi_connected()
+{
+  state.s_info.is_wifi_connected = WiFi.status() == WL_CONNECTED;
+  return state.s_info.is_wifi_connected;
+};
+
+bool setup_wifi()
+{
+  int setup_begin = millis();
+  Serial.println("Setup: WiFi");
+  WiFi.mode(WIFI_STA);
+
+  // WiFi.config(config->local_ip, config->gateway, config->subnet, config->dns1, config->dns2);
+
+  if (WiFi.status() == 255)
+  {
+    Serial.println("NO MODULE!!!!");
+    return false;
+  }
+
+  WiFi.begin(config.SSID.c_str(), config.PASSWORD.c_str());
+
+  Serial.println("Setup: WiFi begin ");
+
+  while (!is_wifi_connected() && millis() - setup_begin < WIFI_CONNECTION_TIMEOUT * 1000)
+  {
+    delay(250);
+    Serial.print(".");
+  }
+
+  return true;
+};
+
 void setup_network()
 {
   Serial.println("Setup: Network begin");
-  state.s_info.is_wifi_setup = network_manager.setup(&display, &config);
-  state.s_info.is_wifi_connected = network_manager.connect_wifi();
+  network_manager.setup(&display, &config);
+  state.s_info.is_wifi_setup = setup_wifi();
   Serial.println("Setup: Network completed, is connected: " + String(state.s_info.is_wifi_connected));
 }
 

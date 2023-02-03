@@ -93,7 +93,7 @@ public:
             JsonArray DNS2 = network["dns2"].as<JsonArray>();
             dns2 = parse_ip_json(DNS2);
 
-            // free up memeory
+            // free up memeory here
             LOCAL_IP.clear();
             GATEWAY.clear();
             SUBNET.clear();

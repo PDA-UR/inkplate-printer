@@ -1,15 +1,10 @@
-#ifndef network_manager_h
-#define network_manager_h
-
-#include <Arduino.h>
-#include <Inkplate.h>
-
-#include <WiFi.h>
+#ifndef api_client_h
+#define api_client_h
 
 #include "./config.h"
 #include "./util.h"
 
-class NetworkManager
+class ApiClient
 {
 public:
     bool setup(Inkplate *display, Config *config)
