@@ -11,10 +11,11 @@
 #include "./libraries/InkplateLibrary/Fonts/FreeMonoBold24pt7b.h"
 
 #include "socket_messages.h"
-#include "./icons/arrow_left_58.h"
-#include "./icons/arrow_right_58.h"
-#include "./icons/enqueue_58.h"
-#include "./icons/hourglass_58.h"
+
+#include "./icons/back.h"
+#include "./icons/next.h"
+#include "./icons/load.h"
+#include "./icons/enqueue.h"
 
 // bitmask for GPIO_34 which is connected to MCP INTB
 #define TOUCHPAD_WAKE_MASK (int64_t(1) << GPIO_NUM_34)
@@ -180,19 +181,18 @@ public:
 
     void draw_loading_icon(TP_PRESSED tp)
     {
-        int icon_size = sizeof(hourglass_icon);
         switch (tp)
         {
         case tp_left:
-            display->drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_left, 56), true, false);
+            display->drawBitmap(0, get_button_y(tp_middle, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
             break;
 
         case tp_right:
-            display->drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_right, 56), true, false);
+            display->drawBitmap(0, get_button_y(tp_middle, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
             break;
 
         case tp_middle:
-            display->drawJpegFromBuffer(hourglass_icon, icon_size, 0, get_button_y(tp_middle, 56), true, false);
+            display->drawBitmap(0, get_button_y(tp_middle, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
             break;
         }
     }
@@ -236,14 +236,12 @@ public:
 
     void draw_next_button()
     {
-        int icon_size = sizeof(arrow_right_icon);
-        display->drawJpegFromBuffer(arrow_right_icon, icon_size, 0, get_button_y(tp_right, 56), true, false);
+        display->drawBitmap(0, get_button_y(tp_right, 56), next_icon, 56, 56, C_WHITE, C_BLACK);
     }
 
     void draw_back_button()
     {
-        int icon_size = sizeof(arrow_left_icon);
-        display->drawJpegFromBuffer(arrow_left_icon, icon_size, 0, get_button_y(tp_left, 56), true, false);
+        display->drawBitmap(0, get_button_y(tp_left, 56), back_icon, 56, 56, C_WHITE, C_BLACK);
     }
 
     void draw_device_index_info()
@@ -287,8 +285,7 @@ public:
 
     void draw_enqueue_button()
     {
-        int icon_size = sizeof(enqueue_icon);
-        display->drawJpegFromBuffer(enqueue_icon, icon_size, 0, get_button_y(tp_middle, 56), true, false);
+        display->drawBitmap(0, get_button_y(tp_middle, 56), enqueue_icon, 56, 56, C_WHITE, C_BLACK);
     }
 };
 
