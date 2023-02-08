@@ -10,6 +10,8 @@ class StorageManager
 {
 private:
     Inkplate *display;
+    State *state;
+    ImageBuffer next_page_cache;
 
     String get_page_filename(int page_index)
     {
@@ -26,9 +28,10 @@ private:
     };
 
 public:
-    bool setup(Inkplate *display)
+    bool setup(Inkplate *display, State *state)
     {
         this->display = display;
+        this->state = state;
         // Init SD card. Display if SD card is init properly or not.
         Serial.println("Setup: Storage");
 
@@ -76,19 +79,20 @@ public:
     };
 
     // @ToDo Remove unused?
-    uint8_t *get_page(int page_index)
+    ImageBuffer get_page(int page_index)
     {
         SdFile file;
         String filepath = get_page_filepath(page_index);
-        uint8_t *img_buffer = NULL;
+        ImageBuffer img_buffer;
 
         Serial.println(filepath.c_str());
 
         if (file.open(filepath.c_str(), O_READ))
         {
             int file_size = file.fileSize();
-            img_buffer = (uint8_t *)malloc(file_size);
-            file.read(img_buffer, file_size);
+            img_buffer.buffer = (uint8_t *)malloc(file_size);
+            img_buffer.size = file_size;
+            file.read(img_buffer.buffer, file_size);
         }
         else
             Serial.println("Error opening bmp file");
@@ -135,6 +139,32 @@ public:
 
         return count;
     };
+
+    void cache_page(bool is_next)
+    {
+        Serial.println("Caching next page");
+        int next_page_index = state->p_info.page_index + (is_next ? 1 : -1);
+        if (next_page_index < 0 || next_page_index >= state->p_info.page_count)
+            return;
+        Serial.println("next page index " + String(next_page_index));
+        next_page_cache = get_page(next_page_index);
+        Serial.println("next page cache size " + String(next_page_cache.size));
+
+        Serial.printf("[APP] Free memory: %d bytes \n", esp_get_free_heap_size());
+    };
+
+    bool has_cached_page(bool is_next)
+    {
+        int next_page_index = state->p_info.page_index + (is_next ? 1 : -1);
+        if (next_page_index < 0 || next_page_index >= state->p_info.page_count)
+            return false;
+        return true;
+    };
+
+    ImageBuffer *get_cached_page()
+    {
+        return &next_page_cache;
+    }
 };
 
 #endif

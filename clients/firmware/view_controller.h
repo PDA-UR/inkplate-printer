@@ -11,6 +11,7 @@
 #include "./libraries/InkplateLibrary/Fonts/FreeMonoBold24pt7b.h"
 
 #include "socket_messages.h"
+#include "./storage_manager.h"
 
 #include "./icons/back.h"
 #include "./icons/next.h"
@@ -30,6 +31,7 @@ class ViewController
 
 private:
     Inkplate *display;
+    StorageManager *storage_manager;
     int DISPLAY_WIDTH;
     int DISPLAY_HEIGHT;
 
@@ -107,10 +109,11 @@ private:
 
 public:
     ViewController(){};
-    void setup(Inkplate *display, State *state)
+    void setup(Inkplate *display, State *state, StorageManager *storage_manager)
     {
         this->display = display;
         this->state = state;
+        this->storage_manager = storage_manager;
 
         display->begin();
         // Setup mcp interrupts
@@ -134,17 +137,25 @@ public:
     bool show_page(int page_index, bool do_show_gui, bool do_show_connection)
     {
         String filepath = get_page_filepath(page_index);
+        bool is_next_page = page_index > state->p_info.page_index;
 
-        if (display->drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0))
-            draw_status_bar(do_show_connection);
+        if (storage_manager->has_cached_page(is_next_page))
+        {
+            Serial.println("Using cached page");
+            ImageBuffer *buffer = storage_manager->get_cached_page();
+            display->drawJpegFromBuffer(buffer->buffer, 0, 0, buffer->size, 0, 0);
+        }
         else
         {
-            Serial.println("Failed to show page");
-            return false;
-        }
+            Serial.println("Loading page from SD");
+            display->drawJpegFromSd(filepath.c_str(), 0, 0, 0, 0);
+        };
+        draw_status_bar(do_show_connection);
 
         if (do_show_gui)
             draw_gui();
+
+        storage_manager->cache_page(is_next_page);
 
         refresh_display();
 

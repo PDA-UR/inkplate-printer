@@ -200,7 +200,7 @@ void setup_view()
 {
   Serial.println("Setup: View begin");
   state.last_interaction_ts = millis();
-  view_controller.setup(&display, &state);
+  view_controller.setup(&display, &state, &storage_manager);
 }
 void setup_wifi()
 {
@@ -266,7 +266,7 @@ void setup()
   setup_view();
   setup_touchpads();
 
-  if (!storage_manager.setup(&display))
+  if (!storage_manager.setup(&display, &state))
   {
     Serial.println("Failed to setup storage");
     return;

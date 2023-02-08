@@ -20,6 +20,6 @@
 - [x] Hide Device index after receiving first page
 - [x] Download indicator
 - [ ] Improved pagination performance (cache images?)
-- [ ] Fix black artefacts in icons (caused by 1 bit display mode)
+- [x] Fix black artefacts in icons (caused by 1 bit display mode)
 - [ ] Cleanup & Documentation
 - [ ] Webapp offline mode
