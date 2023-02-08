@@ -181,20 +181,8 @@ public:
 
     void draw_loading_icon(TP_PRESSED tp)
     {
-        switch (tp)
-        {
-        case tp_left:
-            display->drawBitmap(0, get_button_y(tp_left, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
-            break;
-
-        case tp_right:
-            display->drawBitmap(0, get_button_y(tp_middle, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
-            break;
-
-        case tp_middle:
-            display->drawBitmap(0, get_button_y(tp_right, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
-            break;
-        }
+        Serial.println("Drawing loading icon at " + String(tp));
+        display->drawBitmap(0, get_button_y(tp, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
     }
 
     void refresh_connection_status()
