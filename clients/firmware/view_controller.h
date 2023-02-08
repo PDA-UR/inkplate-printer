@@ -184,7 +184,7 @@ public:
         switch (tp)
         {
         case tp_left:
-            display->drawBitmap(0, get_button_y(tp_middle, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
+            display->drawBitmap(0, get_button_y(tp_left, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
             break;
 
         case tp_right:
@@ -192,7 +192,7 @@ public:
             break;
 
         case tp_middle:
-            display->drawBitmap(0, get_button_y(tp_middle, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
+            display->drawBitmap(0, get_button_y(tp_right, 56), load_icon, 56, 56, C_WHITE, C_BLACK);
             break;
         }
     }
