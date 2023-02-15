@@ -15,7 +15,10 @@
 		"string_view": "cpp",
 		"utility": "cpp",
 		"serstream": "cpp",
-		"atomic": "cpp"
+		"atomic": "cpp",
+		"char_traits": "cpp",
+		"*.tcc": "cpp",
+		"fstream": "cpp"
 	},
 	"inline-bookmarks.view.showVisibleFilesOnly": true
 }

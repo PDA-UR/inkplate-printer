@@ -91,18 +91,19 @@ public:
         // write to file
         SdFile file;
 
-        if (file.open("json", O_RDWR | O_CREAT | O_AT_END))
+        if (file.open(STATE_FILE.c_str(), O_RDWR | O_CREAT | O_AT_END))
         {
-            // Clear the contents of the file
-            file.truncate(0);
+            // overwrite file with new json
             file.seekSet(0);
-
-            file.write(json.c_str(), json.length());
-            file.flush();
+            file.truncate(0);
+            file.write(json.c_str());
             file.close();
+
+            Serial.println("State file saved");
             return true;
         }
 
+        Serial.println("Error saving state file!");
         return false;
     }
 
