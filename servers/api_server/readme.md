@@ -7,6 +7,9 @@ The API server provides the following functionality:
 - Websocket API for clients to communicate with the server
 - REST API for clients to download pages
 - Webserver for the webapp
+- Manages the print queue in `$HOME/.inkplate-printer/print_queue`
+  - opens: creates the directory
+  - closes: deletes the directory
 
 ## Setup
 
