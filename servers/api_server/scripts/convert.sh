@@ -1,4 +1,5 @@
 #! /bin/bash
+# used by server to convert a PS to JPEG
 
 WIDTH=$1
 HEIGHT=$2

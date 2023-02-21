@@ -168,7 +168,6 @@ class QueueManager {
 		}
 		const o = outDir.substring(0, outDir.length - 1);
 		const j = `./scripts/convert.sh ${width} ${height} "${filepath}" "${o}"`;
-		console.log("Executing", j);
 		const process = exec(j, cb);
 		return process;
 	};

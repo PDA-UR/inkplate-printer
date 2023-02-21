@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 1. create symlink webapp -> server
+# 1. create symlink webapp -> server to serve the built webapp
 
 # check if dist folder exists, rm if it does
 echo "Removing existing webbapp dist folder"
