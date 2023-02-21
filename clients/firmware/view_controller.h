@@ -21,7 +21,7 @@
 #define TOUCHPAD_WAKE_MASK (int64_t(1) << GPIO_NUM_34)
 
 const int AWAKE_TIME = 60;             // seconds
-const int WIFI_CONNECTION_TIMEOUT = 5; // seconds
+const int WIFI_CONNECTION_TIMEOUT = 7; // seconds
 const int C_BLACK = 1;
 const int C_WHITE = 0;
 

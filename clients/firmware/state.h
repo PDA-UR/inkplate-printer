@@ -31,7 +31,7 @@ class State
 public:
     bool is_setup = false;
     bool is_downloading = false;
-    bool last_interaction_ts = 0;
+    int last_interaction_ts = millis();
     StatusInfo s_info;
     PageInfo p_info;
     DeviceInfo d_info;

@@ -20,5 +20,8 @@
 		"*.tcc": "cpp",
 		"fstream": "cpp"
 	},
-	"inline-bookmarks.view.showVisibleFilesOnly": true
+	"inline-bookmarks.view.showVisibleFilesOnly": true,
+	"scm.inputFontFamily": "editor",
+	"editor.fontFamily": "Berkeley Mono",
+	"debug.console.fontFamily": "Berkeley Mono"
 }

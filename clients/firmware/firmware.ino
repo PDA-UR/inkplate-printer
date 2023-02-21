@@ -193,7 +193,7 @@ void setup_touchpads()
 {
   Serial.println("Setup: Touchpads begin");
   TouchpadEventHandler *handler = new TouchpadEventHandler();
-  touchpadController.setup(&display, handler);
+  touchpadController.setup(&display, &state, handler);
 }
 
 void setup_view()
@@ -264,7 +264,6 @@ void setup()
   Serial.setDebugOutput(true);
 
   setup_view();
-  setup_touchpads();
 
   if (!storage_manager.setup(&display))
   {
@@ -283,6 +282,8 @@ void setup()
     Serial.println("Failed to load state, please make sure the state.json file is valid. If you are unsure, delete it and restart the device.");
     return;
   }
+
+  setup_touchpads();
 
   view_controller.draw_connection_status();
   view_controller.show_gui();

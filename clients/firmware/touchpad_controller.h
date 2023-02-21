@@ -2,6 +2,7 @@
 #define tp_controller_h
 
 #include "Inkplate.h"
+#include "./state.h"
 
 enum TP_PRESSED
 {
@@ -23,12 +24,12 @@ class TouchpadController
 {
 private:
     Inkplate *display;
+    State *state;
     TouchpadEventCallback *callback;
 
     bool touchpad_released = true;
     int touchpad_cooldown_ms = 500;
     long touchpad_released_time = 0;
-    int last_interaction_ts = 0;
 
     void read()
     {
@@ -44,28 +45,28 @@ private:
 
     void handle_left_tp_pressed()
     {
-        last_interaction_ts = millis();
+        state->last_interaction_ts = millis();
         callback->handle_left_tp_pressed();
     }
 
     void handle_middle_tp_pressed()
     {
-        last_interaction_ts = millis();
+        state->last_interaction_ts = millis();
         callback->handle_middle_tp_pressed();
     }
 
     void handle_right_tp_pressed()
     {
-        last_interaction_ts = millis();
+        state->last_interaction_ts = millis();
         callback->handle_right_tp_pressed();
     }
 
 public:
-    void setup(Inkplate *display, TouchpadEventCallback *callback)
+    void setup(Inkplate *display, State *state, TouchpadEventCallback *callback)
     {
         this->display = display;
+        this->state = state;
         this->callback = callback;
-        this->last_interaction_ts = millis();
     }
     void loop()
     {
